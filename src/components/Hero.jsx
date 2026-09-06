@@ -50,7 +50,7 @@ const HERO_NOTE =
   'text-[length:var(--hero-note-size)] font-light text-black'
 
 const HERO_CARD =
-  'pointer-events-auto h-fit w-fit max-w-[42vw] flex-col ' +
+  'pointer-events-auto h-fit w-max max-w-[42vw] flex-col ' +
   'gap-[var(--hero-card-stack)] rounded-md bg-cta p-[var(--hero-card-pad)]'
 
 const HERO_CARD_TITLE =
@@ -122,7 +122,7 @@ const TRAITS = [
 
 function TraitList() {
   return (
-    <ul role="list" className="m-0 flex w-fit list-none flex-col gap-[var(--hero-card-stack)] p-0">
+    <ul role="list" className="m-0 flex w-max list-none flex-col gap-[var(--hero-card-stack)] p-0">
       {TRAITS.map((trait) => (
         <li
           key={trait.label}
@@ -141,7 +141,7 @@ function MenuCardList({ onNavigate }) {
     <nav aria-label="Sections">
       <ul
         role="list"
-        className="m-0 flex w-fit list-none flex-col gap-[var(--hero-card-stack)] p-0"
+        className="m-0 flex w-max list-none flex-col gap-[var(--hero-card-stack)] p-0"
       >
         {MENU_ITEMS.map((item) => (
           <li
@@ -214,12 +214,15 @@ function useHeroMetrics(titleRef, hostRef) {
     const ls = parseFloat(cs.letterSpacing) || 0
     const text = el.textContent.trim()
     if (!fs || !text) return
+    const fontSpec = `${cs.fontWeight} ${fs}px ${cs.fontFamily}`
+    if (document.fonts?.check && !document.fonts.check(fontSpec)) return
+    if (el.getBoundingClientRect().height < fs * 0.5) return
 
     if (!ctxRef.current) {
       ctxRef.current = document.createElement('canvas').getContext('2d')
     }
     const ctx = ctxRef.current
-    ctx.font = `${cs.fontWeight} ${fs}px ${cs.fontFamily}`
+    ctx.font = fontSpec
     const m = ctx.measureText(text)
 
     const left = -m.actualBoundingBoxLeft
@@ -249,6 +252,7 @@ function useHeroMetrics(titleRef, hostRef) {
     if (titleRef.current) ro.observe(titleRef.current)
     if (hostRef.current) ro.observe(hostRef.current)
     const offResize = onViewportResize(measure)
+    window.addEventListener('load', measure)
     const mo = new MutationObserver(measure)
     if (titleRef.current) {
       mo.observe(titleRef.current, {
@@ -259,6 +263,7 @@ function useHeroMetrics(titleRef, hostRef) {
     }
     return () => {
       ro.disconnect()
+      window.removeEventListener('load', measure)
       mo.disconnect()
       offResize()
     }
@@ -456,7 +461,7 @@ export default function Hero({ portal = null }) {
         </h2>
 
         <div
-          className="absolute left-[var(--hero-card-stat-x)] top-[var(--hero-card-stat-y)]
+          className="absolute w-max left-[var(--hero-card-stat-x)] top-[var(--hero-card-stat-y)]
                      translate-x-[var(--hero-card-stat-tx)]
                      translate-y-[var(--hero-card-stat-ty)]"
         >
@@ -469,7 +474,7 @@ export default function Hero({ portal = null }) {
         </div>
 
         <div
-          className="absolute left-[var(--hero-card-list-x)] top-[var(--hero-card-list-y)]
+          className="absolute w-max left-[var(--hero-card-list-x)] top-[var(--hero-card-list-y)]
                      translate-x-[var(--hero-card-list-tx)]
                      translate-y-[var(--hero-card-list-ty)]"
         >

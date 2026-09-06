@@ -187,9 +187,13 @@
 
   --me-media-anchor: 0.936;
   --me-media-behind: 0.4;
-  --me-media-left: calc(
-    var(--me-dome-x) + var(--me-media-anchor) * var(--me-dome-size) - var(--me-media-behind) *
-      var(--me-media-w)
+  --me-media-inset: 6.7vw;
+  --me-media-left: max(
+    calc(
+      var(--me-dome-x) + var(--me-media-anchor) * var(--me-dome-size) - var(--me-media-behind) *
+        var(--me-media-w)
+    ),
+    calc(100% - var(--me-media-inset) - var(--me-media-w))
   );
 
   --me-media-zoom: 1.067;
@@ -509,6 +513,19 @@
     --hero-title-top: 0px;
     --text-display: clamp(3.5rem, min(34vw, 74svh), 59rem);
     --hero-title-tracking: 0.04em;
+  }
+}
+
+@media (min-width: 1024px) and (max-height: 900px) {
+  :root {
+    --text-display: clamp(3.5rem, min(34vw, 62svh), 59rem);
+
+    --hero-card-title-size: clamp(28px, min(3.6vw, 5.6svh), 56px);
+    --hero-note-size: clamp(0.9375rem, min(1.45vw, 2.3svh), 1.375rem);
+    --hero-tech-size: clamp(0.9375rem, min(1.45vw, 2.3svh), 1.5rem);
+    --hero-card-pad: clamp(11px, min(1.25vw, 2svh), 20px);
+    --hero-card-icon: clamp(16px, min(1.55vw, 2.5svh), 24px);
+    --hero-card-nav-gap: clamp(26px, 4.4vh, 38px);
   }
 }
 

@@ -271,7 +271,10 @@ export function useNavMorph() {
           end: `+=${MORPH_DISTANCE}`,
           scrub: true,
           animation: flight.tl,
-          onLeave: () => flight?.settle(),
+          onLeave: () => {
+            flight?.settle()
+            gsap.set(document.querySelector(SEL.shell), { opacity: 1 })
+          },
           onLeaveBack: () => flight?.settle(),
         })
         flight.tl.progress(gsap.utils.clamp(0, 1, window.scrollY / MORPH_DISTANCE))

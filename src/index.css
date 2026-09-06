@@ -1330,6 +1330,11 @@
 
 @media (min-width: 1024px) and (max-height: 900px) {
   :root {
+    --pj-name-size: clamp(1.15rem, min(3.07vw, 4.5svh), 2.625rem);
+    --pj-title-size: clamp(1.35rem, min(3.7vw, 5.1svh), 3.15rem);
+    --pj-body-size: clamp(0.9375rem, min(1.76vw, 2.56svh), 1.5rem);
+    --pj-pill-size: clamp(0.6875rem, min(1.05vw, 1.6svh), 1rem);
+
     --pj-pill-gap: clamp(24px, 3svh, 42px);
     --pj-body-gap: clamp(15px, 1.3svh, 18px);
   }

@@ -624,8 +624,8 @@
   background-color: var(--glass-fill);
   border: 1px solid var(--glass-border);
   box-shadow: var(--shadow-glass);
-  backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
 }
 
 @supports not (backdrop-filter: blur(1px)) {
@@ -1674,8 +1674,8 @@
 
 [data-vis="devices"] [data-pr-pill="accent"] {
   background-color: var(--pr-dpill-fill);
-  backdrop-filter: var(--pr-dpill-blur);
   -webkit-backdrop-filter: var(--pr-dpill-blur);
+  backdrop-filter: var(--pr-dpill-blur);
   color: var(--color-white);
   font-weight: 500;
 }
@@ -1760,8 +1760,8 @@
   border: 1px solid var(--pr-card-edge);
   border-radius: var(--radius);
   background-color: var(--pr-card-fill);
-  backdrop-filter: var(--pr-card-blur);
   -webkit-backdrop-filter: var(--pr-card-blur);
+  backdrop-filter: var(--pr-card-blur);
 }
 
 [data-pr="card-stat"] {

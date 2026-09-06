@@ -211,25 +211,32 @@ function createFlight() {
 
   const rollLinks = pairs.flatMap((p) => [p.from, p.to])
 
-  const settle = () => {
+  const settle = (force) => {
     rollLinks.forEach((link) => {
-      if (link.matches(':hover')) return
       const chars = link.querySelectorAll('.hover-roll > span')
       if (!chars.length) return
+      if (force) {
+        gsap.killTweensOf(chars)
+        gsap.set(chars, { yPercent: 0 })
+        return
+      }
+      if (link.matches(':hover')) return
       if (gsap.getTweensOf(chars).length) return
       gsap.set(chars, { yPercent: 0 })
     })
   }
 
-  pill.addEventListener('pointerleave', settle)
-  card.addEventListener('pointerleave', settle)
+  const onLeaveRest = () => settle()
+
+  pill.addEventListener('pointerleave', onLeaveRest)
+  card.addEventListener('pointerleave', onLeaveRest)
 
   return {
     tl,
     settle,
     destroy() {
-      pill.removeEventListener('pointerleave', settle)
-      card.removeEventListener('pointerleave', settle)
+      pill.removeEventListener('pointerleave', onLeaveRest)
+      card.removeEventListener('pointerleave', onLeaveRest)
       tl.revert()
       tl.kill()
       layer.remove()
@@ -271,6 +278,9 @@ export function useNavMorph() {
           end: `+=${MORPH_DISTANCE}`,
           scrub: true,
           animation: flight.tl,
+          onUpdate: (self) => {
+            if (self.progress < 1) flight?.settle(true)
+          },
           onLeave: () => {
             flight?.settle()
             gsap.set(document.querySelector(SEL.shell), { opacity: 1 })

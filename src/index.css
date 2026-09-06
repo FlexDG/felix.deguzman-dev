@@ -527,10 +527,14 @@
   }
 }
 
-@media (min-width: 1400px) and (max-height: 900px) {
+@media (min-width: 1024px) and (max-height: 900px) {
   [data-about="stage"] {
-    --about-heading-size: calc(clamp(2.25rem, min(5.6vw, 11.3svh), 9.5rem) - 16px);
-    --about-body-size: calc(clamp(1.5rem, min(4.4vw, 8svh), 3.5rem) - 16px);
+    --about-heading-size: calc(clamp(2.25rem, min(5.6vw, 11.3svh), 9.5rem) - 24px);
+    --about-body-size: calc(clamp(1.5rem, min(4.4vw, 8svh), 3.5rem) - 24px);
+  }
+
+  [data-about="group"] {
+    margin-top: 16px;
   }
 }
 
@@ -625,6 +629,17 @@
     outline-offset: 3px;
     border-radius: 4px;
   }
+}
+
+[data-nav-pill] {
+  transition:
+    -webkit-backdrop-filter 360ms ease,
+    backdrop-filter 360ms ease;
+}
+
+[data-nav-shell][aria-hidden="true"] [data-nav-pill] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @utility glass {

@@ -1,3 +1,5 @@
+// Unused — leftover starter scaffold
+
 import { Canvas } from '@react-three/fiber'
 import { Environment, ContactShadows } from '@react-three/drei'
 

@@ -10,7 +10,7 @@ import { HeroCta } from './Hero'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const AVATAR = `${import.meta.env.BASE_URL}images/contact_image.png`
+const AVATAR = `${import.meta.env.BASE_URL}images/contact_image.webp`
 
 const CV_FILE = `${import.meta.env.BASE_URL}${encodeURI(
   'resources/De Guzman, Felix Rafael - CV.pdf',

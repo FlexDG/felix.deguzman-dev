@@ -7,7 +7,7 @@ import { useNavMorph, MORPH_DISTANCE } from '../hooks/useNavMorph'
 import { MENU_ITEMS } from './navMenu'
 import { BOOKING } from './booking'
 
-const LOGO_SRC = `${import.meta.env.BASE_URL}images/logo/main_logo.png`
+const LOGO_SRC = `${import.meta.env.BASE_URL}images/logo/main_logo.webp`
 
 const REVEAL_AFTER = MORPH_DISTANCE * 0.88
 

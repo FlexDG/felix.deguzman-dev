@@ -4,7 +4,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 const AboutPortraitGL = lazy(() => import('./AboutPortraitGL'))
 
-const ABOUT_IMAGE = `${import.meta.env.BASE_URL}images/about_image.png`
+const ABOUT_IMAGE = `${import.meta.env.BASE_URL}images/about_image.webp`
 const ABOUT_IMAGE_900 = `${import.meta.env.BASE_URL}images/about_image-900.webp`
 const ABOUT_IMAGE_1400 = `${import.meta.env.BASE_URL}images/about_image-1400.webp`
 const ABOUT_VIDEO = `${import.meta.env.BASE_URL}images/about_alive.webm`

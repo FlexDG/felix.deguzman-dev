@@ -1,10 +1,10 @@
 // Services section
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, lazy, Suspense } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Pill } from './Process'
-import ScrollLine from './ScrollLine'
+const ScrollLine = lazy(() => import('./ScrollLine'))
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -145,7 +145,16 @@ export default function Services() {
         className="mx-auto w-full max-w-[var(--max-content-width)]
                    px-[var(--page-padding-x)]"
       >
-        <ScrollLine />
+        <Suspense
+          fallback={
+            <div data-ln="root" aria-hidden="true">
+              <div data-ln="mask" />
+              <canvas data-ln="mouse" />
+            </div>
+          }
+        >
+          <ScrollLine />
+        </Suspense>
 
         <div className="mx-auto flex max-w-[var(--sv-head-w)] flex-col items-center text-center">
           <h2

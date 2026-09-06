@@ -1,9 +1,9 @@
 // Gaming PC section
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import PCScene from './PCScene'
+const PCScene = lazy(() => import('./PCScene'))
 import PCCopy, { SECTION_HEADING_ID } from './PCCopy'
 import { buildPCTimeline, applyStaticShot } from './pcTimeline'
 import { ACTS } from './pcContent'
@@ -78,7 +78,9 @@ export default function GamingPCSection({ modelUrl }) {
     >
       <div data-gp="stage">
         <div data-gp="pane">
-          <PCScene apiRef={apiRef} onReady={handleReady} modelUrl={modelUrl} />
+          <Suspense fallback={null}>
+            <PCScene apiRef={apiRef} onReady={handleReady} modelUrl={modelUrl} />
+          </Suspense>
 
           <PCCopy />
 

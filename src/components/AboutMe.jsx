@@ -365,9 +365,23 @@ export default function AboutMe() {
         document.addEventListener('pointerdown', onOutside)
         document.addEventListener('keydown', onKey)
 
+        const closeAll = () => {
+          nudges.forEach((n) => n.removeAttribute('data-open'))
+          hide()
+        }
+
+        const away = ScrollTrigger.create({
+          trigger: q('[data-me="stage"]')[0] || root,
+          start: 'top bottom',
+          end: 'bottom top',
+          onLeave: closeAll,
+          onLeaveBack: closeAll,
+        })
+
         if (import.meta.env.DEV) window.__meWheel = { show, hide, spin }
 
         return () => {
+          away.kill()
           handles.forEach((el) => {
             el.removeEventListener('pointerenter', openIfMoved)
             el.removeEventListener('pointermove', openIfMoved)

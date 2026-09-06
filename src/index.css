@@ -2,7 +2,9 @@
 
 @font-face {
   font-family: "Alte Haas Grotesk";
-  src: url("./assets/fonts/AlteHaasGroteskRegular.ttf") format("truetype");
+  src:
+    url("./assets/fonts/AlteHaasGroteskRegular.woff2") format("woff2"),
+    url("./assets/fonts/AlteHaasGroteskRegular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -10,7 +12,9 @@
 
 @font-face {
   font-family: "Alte Haas Grotesk";
-  src: url("./assets/fonts/AlteHaasGroteskBold.ttf") format("truetype");
+  src:
+    url("./assets/fonts/AlteHaasGroteskBold.woff2") format("woff2"),
+    url("./assets/fonts/AlteHaasGroteskBold.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -528,11 +532,6 @@
 }
 
 @media (min-width: 1024px) and (max-height: 900px) {
-  [data-about="stage"] {
-    --about-heading-size: calc(clamp(2.25rem, min(5.6vw, 11.3svh), 9.5rem) - 24px);
-    --about-body-size: calc(clamp(1.5rem, min(4.4vw, 8svh), 3.5rem) - 24px);
-  }
-
   [data-about="group"] {
     margin-top: 16px;
   }
@@ -551,6 +550,8 @@
 
   html {
     -webkit-text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+    background-color: var(--color-primary);
   }
 
   body {
@@ -559,6 +560,7 @@
     line-height: 1.6;
     color: var(--color-primary);
     background-color: var(--color-white);
+    overscroll-behavior-y: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;

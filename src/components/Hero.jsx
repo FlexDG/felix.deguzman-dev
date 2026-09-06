@@ -21,10 +21,10 @@ const HEADLINE_ROLES = [
   'Automates Work',
 ]
 
-const HERO_IMAGE = `${import.meta.env.BASE_URL}images/hero_image.png`
+const HERO_IMAGE = `${import.meta.env.BASE_URL}images/hero_image.webp`
 
-const MOBILE_HERO_800 = `${import.meta.env.BASE_URL}images/mobile_hero_image-800.png`
-const MOBILE_HERO_1200 = `${import.meta.env.BASE_URL}images/mobile_hero_image-1200.png`
+const MOBILE_HERO_800 = `${import.meta.env.BASE_URL}images/mobile_hero_image-800.webp`
+const MOBILE_HERO_1200 = `${import.meta.env.BASE_URL}images/mobile_hero_image-1200.webp`
 
 const TECH_LEFT = [
   { name: 'React', icon: reactIcon, blurb: 'Component-driven interfaces' },

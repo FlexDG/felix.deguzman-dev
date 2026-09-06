@@ -168,7 +168,25 @@ export default function IntroCurtain() {
         }
 
         let plan = { dx: 0, dy: 0 }
+        let waitingForFont = false
+        const fontReady = () => {
+          if (!document.fonts?.check) return true
+          const cs = getComputedStyle(heroWord)
+          return document.fonts.check(`${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`)
+        }
         const prepare = () => {
+          if (!fontReady()) {
+            if (waitingForFont) return
+            waitingForFont = true
+            tl.pause()
+            document.fonts.ready.then(() => {
+              if (killed) return
+              waitingForFont = false
+              prepare()
+              tl.resume()
+            })
+            return
+          }
           const heroSize = getComputedStyle(heroWord).fontSize
           const heroFS = parseFloat(heroSize) || 0
           const introFS = parseFloat(getComputedStyle(text).fontSize) || 0

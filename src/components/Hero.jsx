@@ -467,7 +467,7 @@ export default function Hero({ portal = null }) {
         >
           <HeroCard data-hero="card-stat" className="flex">
             <h3 className={HERO_CARD_TITLE}>2+</h3>
-            <p className={`${HERO_CARD_TEXT} max-w-[var(--hero-card-stat-w)] leading-[1.25]`}>
+            <p className={`${HERO_CARD_TEXT} w-[var(--hero-card-stat-w)] leading-[1.25]`}>
               Years of experience
             </p>
           </HeroCard>

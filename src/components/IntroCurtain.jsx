@@ -276,7 +276,7 @@ export default function IntroCurtain() {
 
         Promise.race([
           Promise.all([document.fonts?.ready ?? Promise.resolve(), heroImageReady()]),
-          wait(1800),
+          wait(4000),
         ]).then(() => {
           if (killed) return
           lock()

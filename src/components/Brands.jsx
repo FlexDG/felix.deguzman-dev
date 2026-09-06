@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { scrub } from '../hooks/useSmoothScroll'
+import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -94,14 +95,20 @@ export default function Brands() {
 
         const q = gsap.utils.selector(root)
 
+        const soft = isLowPerf() ? null : 'blur(12px)'
+
         q('[data-bd="logo"]').forEach((el) => {
           gsap.fromTo(
             el,
-            { autoAlpha: 0, y: () => window.innerHeight * 0.0488, filter: 'blur(12px)' },
+            {
+              autoAlpha: 0,
+              y: () => window.innerHeight * 0.0488,
+              ...(soft ? { filter: soft } : null),
+            },
             {
               autoAlpha: 1,
               y: 0,
-              filter: 'blur(0px)',
+              ...(soft ? { filter: 'blur(0px)' } : null),
               ease: 'power2.out',
               immediateRender: true,
               scrollTrigger: {

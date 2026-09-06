@@ -4,6 +4,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Hero from './Hero'
+import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -16,6 +17,7 @@ const SEL = {
   headlineLines: '[data-hero="headline"] > span',
   cardStat: '[data-hero="card-stat"]',
   cardTraits: '[data-hero="card-traits"]',
+  cardNav: '[data-hero="card-nav"]',
   cta: '[data-hero="cta"]',
   notes: '[data-hero="notes"]',
   img: '[data-hero-img]',
@@ -49,6 +51,7 @@ export default function HeroStage() {
         .to(q(SEL.tech), { opacity: 0, y: 24, duration: 0.11 }, 0.03)
         .to(q(SEL.cardStat), { opacity: 0, xPercent: -16, duration: 0.11 }, 0.02)
         .to(q(SEL.cardTraits), { opacity: 0, xPercent: 16, duration: 0.11 }, 0.02)
+        .to(q(SEL.cardNav), { opacity: 0, xPercent: -16, duration: 0.11 }, 0.02)
         .to(
           q(SEL.headlineLines),
           { yPercent: -160, duration: 0.13, ease: 'power2.in', stagger: 0.022 },
@@ -66,6 +69,8 @@ export default function HeroStage() {
 
       if (import.meta.env.DEV) window.__heroTl = tl
 
+      const syncActive = (self) => api.setActive?.(self.progress > 0.002 && self.progress < 1)
+
       ScrollTrigger.create({
         trigger: stage,
         start: 'top top',
@@ -73,8 +78,9 @@ export default function HeroStage() {
         scrub: true,
         animation: tl,
         invalidateOnRefresh: true,
-        onToggle: (self) => api.setActive?.(self.progress < 1),
-        onRefresh: (self) => api.setActive?.(self.progress < 1),
+        onUpdate: syncActive,
+        onToggle: syncActive,
+        onRefresh: syncActive,
       })
     }, stage)
 
@@ -116,36 +122,29 @@ function buildWebgl(tl, q, api) {
 
   tl.to(u.uCover, { value: 1, duration: 0.14, ease: 'power1.in' }, 0.1).to(
     u.uBg.value,
-    { x: r, y: g, z: b, duration: 0.4, ease: 'power1.inOut' },
+    { x: r, y: g, z: b, duration: 0.34, ease: 'power1.inOut' },
     0.14,
   )
 
   tl.to(u.uZoom, { value: 1.35, duration: 0.18, ease: 'power1.out' }, 0.02)
-    .to(u.uZoom, { value: 8, duration: 0.48, ease: 'power1.in' }, 0.2)
-    .to(u.uCentering, { value: 1, duration: 0.4, ease: 'power2.out' }, 0.16)
+    .to(u.uZoom, { value: api.lockZoom, duration: 0.38, ease: 'power1.in' }, 0.18)
+    .to(u.uCentering, { value: 1, duration: 0.38, ease: 'power2.out' }, 0.16)
     .to(u.uGrain, { value: 1, duration: 0.16 }, 0.16)
-    .to(u.uVignette, { value: 1, duration: 0.3, ease: 'power1.out' }, 0.22)
-    .to(u.uBlur, { value: 0.34, duration: 0.36, ease: 'power2.in' }, 0.3)
-    .to(u.uAberration, { value: 0.05, duration: 0.34, ease: 'power2.in' }, 0.32)
+    .to(u.uVignette, { value: 1, duration: 0.28, ease: 'power1.out' }, 0.22)
+    .to(u.uBlur, { value: 0.08, duration: 0.32, ease: 'power2.in' }, 0.28)
+    .to(u.uAberration, { value: 0.02, duration: 0.3, ease: 'power2.in' }, 0.3)
 
-  tl.to(u.uCorrode, { value: 1, duration: 0.39, ease: 'none' }, 0.54)
+  tl.to(u.uCorrode, { value: 1, duration: 0.44, ease: 'none' }, 0.52)
+    .to(u.uEdge, { value: 0.05, duration: 0.3, ease: 'power1.in' }, 0.6)
 
-    .to(u.uWarp, { value: 74, duration: 0.13, ease: 'power1.in' }, 0.55)
-    .to(u.uWarp, { value: 0, duration: 0.09 }, 0.84)
+    .to(u.uZoom, { value: api.lockZoom * 1.85, duration: 0.44, ease: 'power1.in' }, 0.52)
+    .to(u.uVignette, { value: 0.25, duration: 0.16 }, 0.6)
+    .to(u.uVignette, { value: 0, duration: 0.14 }, 0.78)
 
-    .to(u.uEdge, { value: 0.13, duration: 0.26, ease: 'power1.in' }, 0.66)
+    .to(u.uAberration, { value: 0, duration: 0.12 }, 0.8)
+    .to(u.uGrain, { value: 0, duration: 0.14 }, 0.82)
 
-    .to(u.uRim, { value: 0.42, duration: 0.09 }, 0.55)
-    .to(u.uRim, { value: 0, duration: 0.1 }, 0.82)
-
-    .to(u.uZoom, { value: 30, duration: 0.26, ease: 'power3.in' }, 0.68)
-    .to(u.uBlur, { value: 0.62, duration: 0.24, ease: 'power2.in' }, 0.66)
-    .to(u.uVignette, { value: 0, duration: 0.14 }, 0.72)
-
-    .to(u.uAberration, { value: 0, duration: 0.12 }, 0.78)
-    .to(u.uGrain, { value: 0, duration: 0.12 }, 0.8)
-
-    .to(u.uWhite, { value: 1, duration: 0.05 }, 0.93)
+  tl.to(u.uWhite, { value: 1, duration: 0.05 }, 0.94)
 }
 
 function buildCss(tl, q, api) {
@@ -156,9 +155,15 @@ function buildCss(tl, q, api) {
 
   if (figure) {
     gsap.set(figure, { xPercent: -50, transformOrigin: `${fx}% ${fy}%` })
-    tl.to(figure, { scale: 9, duration: 0.55, ease: 'power2.in' }, 0.16)
-      .to(figure, { scale: 22, duration: 0.26, ease: 'power3.in' }, 0.66)
-      .to(figure, { filter: 'blur(26px)', duration: 0.3, ease: 'power2.in' }, 0.6)
+    tl.to(figure, { scale: 9, duration: 0.55, ease: 'power2.in' }, 0.16).to(
+      figure,
+      { scale: 22, duration: 0.26, ease: 'power3.in' },
+      0.66,
+    )
+
+    if (!isLowPerf()) {
+      tl.to(figure, { filter: 'blur(26px)', duration: 0.3, ease: 'power2.in' }, 0.6)
+    }
   }
 
   const el = api.el

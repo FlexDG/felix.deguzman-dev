@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Pill } from './Process'
+import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -195,14 +196,14 @@ export default function About() {
               trigger: stage,
               start: 'top bottom',
               end: 'top top',
-              scrub: true,
+              scrub: narrow ? 0.4 : true,
               invalidateOnRefresh: true,
             },
           },
         )
 
         const startScale = narrow ? 3.4 : 5.5
-        const blur = narrow ? 10 : 20
+        const blur = narrow || isLowPerf() ? 0 : 20
         const fringe = narrow ? 2 : 6
 
         const settle = () => gsap.utils.clamp(20, 64, window.innerHeight * 0.06)
@@ -210,7 +211,7 @@ export default function About() {
         gsap.set(group, {
           z: zForScale(startScale),
           rotateX: narrow ? 4 : 7,
-          filter: `blur(${blur}px)`,
+          filter: blur ? `blur(${blur}px)` : 'none',
         })
         gsap.set(plane, { opacity: 0 })
         gsap.set(bWords, { autoAlpha: 0, yPercent: 60 })
@@ -221,7 +222,7 @@ export default function About() {
             trigger: stage,
             start: 'top bottom',
             end: 'bottom bottom',
-            scrub: true,
+            scrub: narrow ? 0.4 : true,
             invalidateOnRefresh: true,
           },
         })
@@ -230,9 +231,6 @@ export default function About() {
           .to(group, { rotateX: 0, duration: 0.46, ease: 'power1.out' }, 0.05)
 
           .to(plane, { opacity: 1, duration: 0.05, stagger: 0.014 }, 0.05)
-
-          .to(group, { filter: 'blur(0px)', duration: 0.3, ease: 'power2.out' }, 0.06)
-          .set(group, { filter: 'none' }, 0.4)
 
           .fromTo(
             heading,
@@ -266,6 +264,14 @@ export default function About() {
           )
 
           .set({}, {}, 1)
+
+        if (blur) {
+          tl.to(group, { filter: 'blur(0px)', duration: 0.3, ease: 'power2.out' }, 0.06).set(
+            group,
+            { filter: 'none' },
+            0.4,
+          )
+        }
 
         if (import.meta.env.DEV) window.__aboutTl = tl
       },
@@ -357,7 +363,7 @@ export default function About() {
   return (
     <section ref={rootRef} id="about" aria-label="About" className="relative z-[1] w-full bg-white">
       <div data-about="stage" className="relative h-[calc(100svh+var(--about-runway))]">
-        <div className="initial-about-mobile-height sticky top-0 h-svh w-full">
+        <div className="initial-about-mobile-height sticky top-0 h-[100lvh] w-full">
           <div data-about="rig" className="absolute inset-0 overflow-hidden">
             <div
               className="absolute inset-0 grid place-items-center page-x"
@@ -382,7 +388,7 @@ export default function About() {
 
                 <p
                   className="mx-auto m-0 mt-[clamp(20px,3.6svh,48px)] max-w-[32ch]
-                             font-heading text-[length:var(--about-body-size)] font-bold
+                             font-body text-[length:var(--about-body-size)] font-normal
                              leading-[1.32] tracking-[-0.02em] text-primary"
                 >
                   {BODY_TOKENS.map((token, i) => (

@@ -111,14 +111,23 @@ export default function AboutPortraitGL({ videoRef, onReady, onFail }) {
     const io = new IntersectionObserver(
       ([entry]) => {
         onScreen = entry.isIntersecting
+        if (painted) {
+          if (onScreen) tl.resume()
+          else tl.pause()
+        }
       },
       { rootMargin: '25% 0px 25% 0px' },
     )
     io.observe(canvas)
 
-    const draw = () => {
+    const MIN_FRAME_MS = 1000 / 33
+    let lastDraw = 0
+
+    const draw = (now = 0) => {
       frame = requestAnimationFrame(draw)
       if (document.hidden || (painted && !onScreen)) return
+      if (painted && now - lastDraw < MIN_FRAME_MS) return
+      lastDraw = now
       renderer.render(scene, camera)
 
       if (painted) return
@@ -128,6 +137,7 @@ export default function AboutPortraitGL({ videoRef, onReady, onFail }) {
 
       if (subject > 240 && backdrop < 16) {
         painted = true
+        if (!onScreen) tl.pause()
         onReady?.()
         return
       }

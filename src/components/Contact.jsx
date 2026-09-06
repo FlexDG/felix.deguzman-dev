@@ -182,6 +182,8 @@ export default function Contact() {
         (self) => {
           if (self.conditions.reduced) return
 
+          let cleanup
+
           const q = gsap.utils.selector(root)
           const lead = q('[data-ct="lead"]')[0]
           const pop = q('[data-ct="pop"]')[0]
@@ -212,6 +214,22 @@ export default function Contact() {
 
           if (lead && lWords.length) {
             gsap.set(lWords, { opacity: 'var(--ct-ghost)' })
+
+            let inkIo = null
+            if (typeof IntersectionObserver !== 'undefined') {
+              inkIo = new IntersectionObserver(
+                ([entry]) => {
+                  if (entry.isIntersecting) lead.setAttribute('data-ink-live', '')
+                  else lead.removeAttribute('data-ink-live')
+                },
+                { rootMargin: '60% 0px' },
+              )
+              inkIo.observe(lead)
+            }
+            cleanup = () => {
+              inkIo?.disconnect()
+              lead.removeAttribute('data-ink-live')
+            }
 
             const LEAD_WINDOW = 0.5
             const lStep = LEAD_WINDOW / Math.max(lWords.length - 1, 1)
@@ -400,6 +418,8 @@ export default function Contact() {
               window.__ctSay = tlSay
             }
           }
+
+          return () => cleanup?.()
         },
         root,
       )

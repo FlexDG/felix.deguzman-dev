@@ -589,7 +589,7 @@ export default function AboutMe() {
           <div
             data-me="pane"
             data-cursor="hover"
-            className="sticky top-0 h-svh w-full overflow-hidden"
+            className="sticky top-0 h-[100lvh] w-full overflow-hidden"
           >
             <div data-me="left" className="absolute inset-0 z-[var(--me-z-left)]">
               <div data-me="dome" />

@@ -370,7 +370,7 @@ export default function Hero({ portal = null }) {
     <section
       ref={hostRef}
       data-hero-pane
-      className="sticky top-0 isolate h-svh w-full overflow-hidden bg-hero-bg"
+      className="sticky top-0 isolate h-[100lvh] w-full overflow-hidden bg-hero-bg"
       id="home"
       aria-label="Intro"
     >

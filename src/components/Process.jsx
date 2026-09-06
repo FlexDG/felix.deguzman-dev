@@ -11,12 +11,12 @@ gsap.registerPlugin(ScrollTrigger)
 
 const IMG = `${import.meta.env.BASE_URL}images/process_images/`
 
-const PROCESS_BG = `${IMG}process_bg.png`
+const PROCESS_BG = `${IMG}process_bg.webp`
 
 const DEVICES = [
-  { file: 'macbook_mockup.png', alt: 'Laptop showing a build in progress', dy: 1, tile: false },
-  { file: 'iphone_mockup.png', alt: 'The same build on a phone', dy: -1, tile: false },
-  { file: 'sketchbook.png', alt: 'A sketchbook of early layouts', dy: 1.6, tile: true },
+  { file: 'macbook_mockup.webp', alt: 'Laptop showing a build in progress', dy: 1, tile: false },
+  { file: 'iphone_mockup.webp', alt: 'The same build on a phone', dy: -1, tile: false },
+  { file: 'sketchbook.webp', alt: 'A sketchbook of early layouts', dy: 1.6, tile: true },
 ]
 
 const DEVICE_PILLS = [
@@ -511,7 +511,7 @@ export default function Process() {
             <div data-el="rig-inner">
               <figure data-el="unit">
                 <img
-                  src={`${IMG}system_unit_white.png`}
+                  src={`${IMG}system_unit_white.webp`}
                   alt="The machine the work is built on"
                   loading="lazy"
                   decoding="async"

@@ -65,7 +65,7 @@ export function createStudio({ scene, rig, renderer, tier }) {
   const key = new THREE.DirectionalLight(0xfff4e8, 2.4)
   key.position.set(6, 9.5, 8)
   key.target.position.set(0, 2.4, 0)
-  key.castShadow = true
+  key.castShadow = tier.shadows !== false
   key.shadow.camera.left = -6.2
   key.shadow.camera.right = 6.2
   key.shadow.camera.top = 5.4
@@ -100,7 +100,8 @@ export function createStudio({ scene, rig, renderer, tier }) {
   const groundMat = new THREE.ShadowMaterial({ color: 0x2a2033, opacity: 0.26, fog: false })
   const ground = new THREE.Mesh(groundGeo, groundMat)
   ground.rotation.x = -Math.PI / 2
-  ground.receiveShadow = true
+  ground.receiveShadow = tier.shadows !== false
+  ground.visible = tier.shadows !== false
   ground.name = 'ground'
   scene.add(ground)
 

@@ -12,14 +12,32 @@ const FOCAL = {
 }
 
 const ROOM_FROM = [0.8902, 0.8706, 0.9882]
-const ROOM_TO = [0.251, 0.169, 0.314]
+const ROOM_TO = [0.128, 0.086, 0.161]
 
-const MAX_DPR = 1.75
-const FRAG_CAP = 3.2e6
+const LOCK_ZOOM = 2.4
 
-function pixelRatioFor(w, h) {
+const TIER = (() => {
+  if (typeof window === 'undefined') return 'high'
+  const coarse = window.matchMedia?.('(pointer: coarse)').matches
+  const cores = navigator.hardwareConcurrency || 8
+  const mem = navigator.deviceMemory || 8
+  return coarse || cores <= 4 || mem <= 4 ? 'low' : 'high'
+})()
+
+const LOW = TIER === 'low'
+
+const MAX_DPR = LOW ? 1.4 : 1.75
+const FRAG_CAP = LOW ? 1.9e6 : 3.2e6
+
+const SLOW_FRAME_MS = 26
+const SAMPLE_WINDOW = 45
+const SLOW_BUDGET = 20
+const WARMUP_FRAMES = 20
+const MIN_RATIO_SCALE = 0.55
+
+function pixelRatioFor(w, h, scale = 1) {
   const device = Math.min(window.devicePixelRatio || 1, MAX_DPR)
-  return Math.min(device, Math.sqrt(FRAG_CAP / Math.max(1, w * h)))
+  return Math.min(device, Math.sqrt(FRAG_CAP / Math.max(1, w * h))) * scale
 }
 
 function detectWebgl() {
@@ -47,9 +65,8 @@ function makeUniforms() {
     uBlur: { value: 0 },
     uAberration: { value: 0 },
     uCorrode: { value: 0 },
-    uEdge: { value: 0.05 },
-    uWarp: { value: 0 },
-    uRim: { value: 0 },
+    uEdge: { value: 0.03 },
+    uLock: { value: LOCK_ZOOM },
     uWhite: { value: 0 },
     uVignette: { value: 0 },
     uGrain: { value: 0 },
@@ -105,6 +122,11 @@ export default function HeroPortal({ apiRef, onReady }) {
     const camera = new THREE.Camera()
     const material = new THREE.ShaderMaterial({
       uniforms,
+      defines: {
+        TAPS: LOW ? 4 : 6,
+        OCT: LOW ? 2 : 3,
+        USE_CA: LOW ? false : 1,
+      },
       vertexShader: PORTAL_VERT,
       fragmentShader: PORTAL_FRAG,
       transparent: true,
@@ -147,13 +169,15 @@ export default function HeroPortal({ apiRef, onReady }) {
       })
     }
 
+    let ratioScale = 1
+
     const measure = () => {
       const pane = host.getBoundingClientRect()
       const box = img.getBoundingClientRect()
       const w = Math.max(1, Math.round(pane.width))
       const h = Math.max(1, Math.round(pane.height))
 
-      renderer.setPixelRatio(pixelRatioFor(w, h))
+      renderer.setPixelRatio(pixelRatioFor(w, h, ratioScale))
       renderer.setSize(w, h, false)
       uniforms.uResolution.value.set(w, h)
       uniforms.uRect.value.set(
@@ -196,11 +220,31 @@ export default function HeroPortal({ apiRef, onReady }) {
     canvas.addEventListener('webglcontextlost', onContextLost)
     canvas.addEventListener('webglcontextrestored', onContextRestored)
 
-    let active = false
+    let active = null
+    let warmup = 0
+    let sampled = 0
+    let slow = 0
+
     const render = (_time, deltaMs) => {
       if (!active || !uniforms.uTex.value || renderer.getContext().isContextLost()) return
       uniforms.uTime.value += Math.min(deltaMs, 50) / 1000
       renderer.render(scene, camera)
+
+      if (warmup < WARMUP_FRAMES) {
+        warmup += 1
+        return
+      }
+      if (ratioScale <= MIN_RATIO_SCALE) return
+
+      sampled += 1
+      if (deltaMs > SLOW_FRAME_MS) slow += 1
+      if (sampled < SAMPLE_WINDOW) return
+      if (slow >= SLOW_BUDGET) {
+        ratioScale = Math.max(MIN_RATIO_SCALE, ratioScale * 0.75)
+        measure()
+      }
+      sampled = 0
+      slow = 0
     }
     gsap.ticker.add(render)
 
@@ -208,10 +252,19 @@ export default function HeroPortal({ apiRef, onReady }) {
       mode: 'webgl',
       uniforms,
       room: { from: ROOM_FROM, to: ROOM_TO },
+      lockZoom: LOCK_ZOOM,
       layer,
       setActive: (next) => {
+        if (next === active) return
         active = next
-        if (next) measure()
+        if (next) {
+          warmup = 0
+          sampled = 0
+          slow = 0
+          measure()
+        } else {
+          paint()
+        }
       },
     }
 

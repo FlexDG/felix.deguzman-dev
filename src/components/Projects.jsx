@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { scrub } from '../hooks/useSmoothScroll'
 import { Pill } from './Process'
 import Brands from './Brands'
+import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -270,7 +271,8 @@ export default function Projects() {
 
         const peek = parseFloat(getComputedStyle(root).getPropertyValue('--pj-peek')) || 5
 
-        const blur = getComputedStyle(root).getPropertyValue('--pj-blur').trim() || '3px'
+        const rawBlur = getComputedStyle(root).getPropertyValue('--pj-blur').trim() || '3px'
+        const blur = isLowPerf() ? null : parseFloat(rawBlur) ? rawBlur : null
 
         const floorGap = () => {
           const d = deck.getBoundingClientRect()
@@ -364,10 +366,10 @@ export default function Projects() {
 
           tl.fromTo(
             card,
-            { yPercent: 0, filter: 'blur(0px)' },
+            blur ? { yPercent: 0, filter: 'blur(0px)' } : { yPercent: 0 },
             {
               yPercent: -peek,
-              filter: `blur(${blur})`,
+              ...(blur ? { filter: `blur(${blur})` } : null),
               duration: beat * RISE,
               ease: EASE_IN,
               immediateRender: false,
@@ -376,11 +378,13 @@ export default function Projects() {
           )
         })
 
-        cards.forEach((card, j) => {
-          tl.set(card, { filter: 'none' }, j * beat)
-          if (j + 1 >= cards.length) return
-          tl.set(card, { filter: 'blur(0px)' }, (j + 1) * beat - 0.001)
-        })
+        if (blur) {
+          cards.forEach((card, j) => {
+            tl.set(card, { filter: 'none' }, j * beat)
+            if (j + 1 >= cards.length) return
+            tl.set(card, { filter: 'blur(0px)' }, (j + 1) * beat - 0.001)
+          })
+        }
 
         cards.forEach((card, j) => {
           if (j + 2 >= cards.length) return
@@ -441,7 +445,7 @@ export default function Projects() {
       <div data-pj="stage" className="relative h-[calc(100svh+var(--pj-runway))]">
         <div
           data-pj="pane"
-          className="flex h-svh w-full flex-col overflow-hidden px-[var(--pj-gutter)]"
+          className="flex h-[100lvh] w-full flex-col overflow-hidden px-[var(--pj-gutter)]"
         >
           <div
             data-pj="deck"

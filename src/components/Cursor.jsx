@@ -78,13 +78,24 @@ export default function Cursor() {
       return el.closest('[data-cursor]')?.getAttribute('data-cursor') || 'default'
     }
 
-    const settle = () => {
-      if (!dirty) return
+    const HIT_TEST_GAP = 0.08
+    let lastTest = 0
+
+    const settle = (time) => {
+      if (!dirty || time - lastTest < HIT_TEST_GAP) return
       dirty = false
+      lastTest = time
       const next = resolve(document.elementFromPoint(x, y))
       if (next === state) return
       state = next
       root.setAttribute('data-state', next)
+      if (next === 'scuba') armGif()
+    }
+
+    const gif = root.querySelector('[data-cur="gif"]')
+    const armGif = () => {
+      if (!gif || gif.src) return
+      gif.src = SCUBA
     }
     gsap.ticker.add(settle)
 
@@ -184,7 +195,6 @@ export default function Cursor() {
 
       <img
         data-cur="gif"
-        src={SCUBA}
         alt=""
         draggable={false}
         onError={(event) =>

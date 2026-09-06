@@ -7,25 +7,49 @@ import { buildPCModel } from './buildPCModel'
 import { createStudio } from './pcStudio'
 import { createCloth } from './pcCloth'
 import { createShot, createFx } from './pcTimeline'
+import { isLowPerf } from '../../lib/perf'
 
-const FRAG_CAP = 3.0e6
-
-function pixelRatioFor(w, h, maxDpr) {
+function pixelRatioFor(w, h, maxDpr, fragCap) {
   const device = Math.min(window.devicePixelRatio || 1, maxDpr)
-  return Math.min(device, Math.sqrt(FRAG_CAP / Math.max(1, w * h)))
+  return Math.min(device, Math.sqrt(fragCap / Math.max(1, w * h)))
 }
 
 function detectTier() {
   const cores = navigator.hardwareConcurrency || 4
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
   const small = window.innerWidth < 900
-  if (coarse || small || cores <= 4) {
-    return { high: false, quality: 0, shadowMap: 512, maxDpr: 1.6, shadowStride: 2 }
+
+  if (isLowPerf() || coarse || small || cores <= 4) {
+    return {
+      high: false,
+      quality: 0,
+      shadows: false,
+      shadowMap: 512,
+      maxDpr: 1.3,
+      shadowStride: 3,
+      fragCap: 1.1e6,
+    }
   }
   if (cores <= 8) {
-    return { high: false, quality: 1, shadowMap: 1024, maxDpr: 1.75, shadowStride: 2 }
+    return {
+      high: false,
+      quality: 1,
+      shadows: true,
+      shadowMap: 1024,
+      maxDpr: 1.75,
+      shadowStride: 2,
+      fragCap: 2.4e6,
+    }
   }
-  return { high: true, quality: 1, shadowMap: 2048, maxDpr: 1.9, shadowStride: 1 }
+  return {
+    high: true,
+    quality: 1,
+    shadows: true,
+    shadowMap: 2048,
+    maxDpr: 1.9,
+    shadowStride: 1,
+    fragCap: 3.0e6,
+  }
 }
 
 function detectWebgl() {
@@ -86,9 +110,9 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.18
-    renderer.shadowMap.enabled = true
+    renderer.shadowMap.enabled = tier.shadows
     renderer.shadowMap.type = tier.high ? THREE.VSMShadowMap : THREE.PCFShadowMap
-    renderer.shadowMap.autoUpdate = tier.shadowStride === 1
+    renderer.shadowMap.autoUpdate = tier.shadows && tier.shadowStride === 1
 
     const scene = new THREE.Scene()
 
@@ -109,7 +133,7 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
 
     const finePointer = typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches
 
-    const cloth = finePointer ? createCloth({ renderer }) : null
+    const cloth = finePointer && tier.quality > 0 ? createCloth({ renderer }) : null
 
     let model = null
     let ready = false
@@ -187,7 +211,7 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
       const rect = layer.getBoundingClientRect()
       width = Math.max(1, Math.round(rect.width))
       height = Math.max(1, Math.round(rect.height))
-      renderer.setPixelRatio(pixelRatioFor(width, height, tier.maxDpr))
+      renderer.setPixelRatio(pixelRatioFor(width, height, tier.maxDpr, tier.fragCap))
       renderer.setSize(width, height, false)
       camera.aspect = width / height
       camera.updateProjectionMatrix()
@@ -306,10 +330,19 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
       cloth?.setActive(on)
     }
 
+    let layerRect = null
+    const readRect = () => {
+      layerRect = layer.getBoundingClientRect()
+    }
+    const invalidateRect = () => {
+      layerRect = null
+    }
+
     function aimCloth(dt) {
       let hit = false
       if (hitReady && !frozen && clientX !== null) {
-        const rect = layer.getBoundingClientRect()
+        if (!layerRect) readRect()
+        const rect = layerRect
         const lx = clientX - rect.left
         const ly = clientY - rect.top
         if (lx >= 0 && ly >= 0 && lx <= rect.width && ly <= rect.height) {
@@ -342,7 +375,7 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
         for (const rotor of model.parts.rotors) rotor.mesh.rotation.z += step * rotor.speed
       }
 
-      if (!renderer.shadowMap.autoUpdate) {
+      if (tier.shadows && !renderer.shadowMap.autoUpdate) {
         frame += 1
         if (frame % tier.shadowStride === 0) renderer.shadowMap.needsUpdate = true
       }
@@ -397,13 +430,16 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
     }
 
     const onPointerMove = (event) => {
-      const rect = layer.getBoundingClientRect()
+      if (!layerRect) readRect()
+      const rect = layerRect
       pointerX = ((event.clientX - rect.left) / rect.width) * 2 - 1
       pointerY = ((event.clientY - rect.top) / rect.height) * 2 - 1
       clientX = event.clientX
       clientY = event.clientY
     }
     if (finePointer) window.addEventListener('pointermove', onPointerMove, { passive: true })
+
+    window.addEventListener('scroll', invalidateRect, { passive: true })
 
     const onPress = () => cloth?.setPress(true)
     const onRelease = () => cloth?.setPress(false)
@@ -415,6 +451,7 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
     }
 
     const resizeObserver = new ResizeObserver(() => {
+      invalidateRect()
       measure()
       if (!active) renderOnce()
     })
@@ -454,6 +491,7 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
       gsap.ticker.remove(tick)
       io.disconnect()
       resizeObserver.disconnect()
+      window.removeEventListener('scroll', invalidateRect)
       if (finePointer) window.removeEventListener('pointermove', onPointerMove)
       if (cloth) {
         window.removeEventListener('pointerdown', onPress)

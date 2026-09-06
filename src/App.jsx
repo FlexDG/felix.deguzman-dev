@@ -1,7 +1,9 @@
 // Root app — section order
 
+import { useEffect } from 'react'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
 import { useHoverFill } from './hooks/useHoverFill'
+import { initPerfWatch } from './lib/perf'
 import IntroCurtain from './components/IntroCurtain'
 import Cursor from './components/Cursor'
 import Navbar from './components/Navbar'
@@ -20,6 +22,7 @@ import SiteFooter from './components/SiteFooter'
 export default function App() {
   useSmoothScroll()
   useHoverFill()
+  useEffect(initPerfWatch, [])
 
   return (
     <>

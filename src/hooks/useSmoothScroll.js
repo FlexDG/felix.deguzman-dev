@@ -4,7 +4,10 @@ import { useEffect } from 'react'
 import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { isLowPerf } from '../lib/perf'
 gsap.registerPlugin(ScrollTrigger)
+
+ScrollTrigger.config({ ignoreMobileResize: true })
 
 let lenisInstance = null
 
@@ -57,7 +60,7 @@ export function useSmoothScroll() {
     let raf
     try {
       lenis = new Lenis({
-        duration: 1.45,
+        duration: isLowPerf() ? 1.05 : 1.45,
         easing: EASE,
         wheelMultiplier: 0.8,
         smoothWheel: true,

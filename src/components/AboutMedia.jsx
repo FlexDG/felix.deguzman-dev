@@ -127,6 +127,7 @@ export default function AboutMedia() {
     let watch = 0
     let last = -1
     let stalls = 0
+    let onScreen = true
 
     const kick = () => video.play().catch(() => {})
 
@@ -136,7 +137,7 @@ export default function AboutMedia() {
     }
 
     const tick = () => {
-      if (document.hidden) return
+      if (document.hidden || !onScreen) return
       if (video.paused) return kick()
 
       if (video.currentTime !== last) {
@@ -148,6 +149,19 @@ export default function AboutMedia() {
         stalls = 0
         restart()
       }
+    }
+
+    let vio = null
+    if (typeof IntersectionObserver !== 'undefined') {
+      vio = new IntersectionObserver(
+        ([entry]) => {
+          onScreen = entry.isIntersecting
+          if (onScreen) kick()
+          else if (!video.paused) video.pause()
+        },
+        { rootMargin: '50% 0px' },
+      )
+      vio.observe(video)
     }
 
     const start = setTimeout(() => {
@@ -168,6 +182,7 @@ export default function AboutMedia() {
     return () => {
       clearTimeout(start)
       clearInterval(watch)
+      vio?.disconnect()
       video.removeEventListener('ended', restart)
     }
   }, [alive])

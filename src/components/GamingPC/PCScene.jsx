@@ -358,7 +358,20 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
       cloth.update(dt)
     }
 
+    const clamp1 = (v) => (v < -1 ? -1 : v > 1 ? 1 : v)
+
+    function aimPointer() {
+      if (clientX === null) return
+      if (!layerRect) readRect()
+      const rect = layerRect
+      if (!rect.width || !rect.height) return
+      pointerX = clamp1(((clientX - rect.left) / rect.width) * 2 - 1)
+      pointerY = clamp1(((clientY - rect.top) / rect.height) * 2 - 1)
+    }
+
     function draw(dt) {
+      aimPointer()
+
       const gain = shot.idle * (1 - activity * 0.68)
       breath.position.y = Math.sin(clock * 0.5) * 0.012 * gain
       breath.rotation.y = Math.sin(clock * 0.33) * 0.005 * gain
@@ -430,10 +443,6 @@ export default function PCScene({ apiRef, onReady, modelUrl }) {
     }
 
     const onPointerMove = (event) => {
-      if (!layerRect) readRect()
-      const rect = layerRect
-      pointerX = ((event.clientX - rect.left) / rect.width) * 2 - 1
-      pointerY = ((event.clientY - rect.top) / rect.height) * 2 - 1
       clientX = event.clientX
       clientY = event.clientY
     }

@@ -3816,3 +3816,9 @@ html[data-intro-boot] body::before {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+
+@media (min-width: 1024px) and (max-width: 1599px) {
+  [data-pr="copy"][data-copy="1"] h2 {
+    max-width: 48vw;
+  }
+}

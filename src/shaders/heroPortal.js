@@ -9,45 +9,13 @@ export const PORTAL_VERT = /* glsl */ `
   }
 `
 
-export const PORTAL_FRAG = /* glsl */ `
-  varying vec2 vUv;
-
-  uniform sampler2D uTex;
-
-  uniform vec2  uResolution;
-  uniform vec4  uRect;
-  uniform vec2  uFocalUv;
-
-  uniform float uZoom;
-  uniform float uCentering;
-  uniform float uBlur;
-  uniform float uAberration;
-
-  uniform float uCorrode;
-  uniform float uEdge;
-  uniform float uLock;
-
-  uniform float uWhite;
-  uniform float uVignette;
-  uniform float uGrain;
-  uniform float uCover;
-  uniform float uTime;
-  uniform vec3  uBg;
-
-  #ifndef TAPS
-    #define TAPS 6
-  #endif
+export const PORTAL_MASK = /* glsl */ `
   #ifndef OCT
     #define OCT 3
   #endif
 
-  const vec3 DECAY = vec3(0.184, 0.122, 0.227);
-
-  vec4 grab(vec2 px) {
-    vec2 uv  = (px - uRect.xy) / uRect.zw;
-    vec2 hit = step(vec2(0.0), uv) * step(uv, vec2(1.0));
-    return texture2D(uTex, clamp(uv, 0.0, 1.0)) * hit.x * hit.y;
-  }
+  #define THR_LO 0.16
+  #define THR_HI 0.84
 
   float hash21(vec2 p) {
     p = fract(p * vec2(123.34, 456.21));
@@ -91,6 +59,64 @@ export const PORTAL_FRAG = /* glsl */ `
     return v / n;
   }
 
+  float grainFreq(float resY, float farL, float cell, float lock) {
+    return clamp(resY * farL / (max(cell, 0.4) * max(lock, 0.4)), 30.0, 260.0);
+  }
+
+  float portalMask(vec2 rv, float corrode, float time, float gf, out float field) {
+    float grade = mix(3.4, 5.6, corrode);
+    vec2  q     = rv * grade + vec2(time * 0.02, time * -0.015);
+    vec2  warp  = vec2(vnoise(q * 1.7 + 11.5), vnoise(q * 1.7 + 41.9)) - 0.5;
+
+    field = fbm(q + warp * 1.35);
+
+    float shape = field * 0.58 + smoothstep(0.0, 1.0, length(rv)) * 0.42;
+    float grain = fbm3(rv * gf + 13.7);
+
+    return shape + (grain - 0.5) * 0.26;
+  }
+`
+
+export const PORTAL_FRAG = /* glsl */ `
+  varying vec2 vUv;
+
+  uniform sampler2D uTex;
+
+  uniform vec2  uResolution;
+  uniform vec4  uRect;
+  uniform vec2  uFocalUv;
+
+  uniform float uZoom;
+  uniform float uCentering;
+  uniform float uBlur;
+  uniform float uAberration;
+
+  uniform float uCorrode;
+  uniform float uEdge;
+  uniform float uLock;
+
+  uniform float uWhite;
+  uniform float uVignette;
+  uniform float uGrain;
+  uniform float uCover;
+  uniform float uCell;
+  uniform float uTime;
+  uniform vec3  uBg;
+
+  #ifndef TAPS
+    #define TAPS 6
+  #endif
+
+${PORTAL_MASK}
+
+  const vec3 DECAY = vec3(0.184, 0.122, 0.227);
+
+  vec4 grab(vec2 px) {
+    vec2 uv  = (px - uRect.xy) / uRect.zw;
+    vec2 hit = step(vec2(0.0), uv) * step(uv, vec2(1.0));
+    return texture2D(uTex, clamp(uv, 0.0, 1.0)) * hit.x * hit.y;
+  }
+
   void main() {
     vec2 px = vUv * uResolution;
 
@@ -104,18 +130,10 @@ export const PORTAL_FRAG = /* glsl */ `
     vec2  rv     = nUv / farL;
     float radial = length(rv);
 
-    float grade = mix(3.4, 5.6, uCorrode);
-    vec2  q     = rv * grade + vec2(uTime * 0.02, uTime * -0.015);
-    vec2  warp  = vec2(vnoise(q * 1.7 + 11.5), vnoise(q * 1.7 + 41.9)) - 0.5;
-    float field = fbm(q + warp * 1.35);
+    float field;
+    float mask = portalMask(rv, uCorrode, uTime, grainFreq(uResolution.y, farL, uCell, uLock), field);
 
-    float shape = field * 0.58 + smoothstep(0.0, 1.0, radial) * 0.42;
-
-    float grain = fbm3(rv * 46.0 + 13.7);
-
-    float mask = shape + (grain - 0.5) * 0.26;
-
-    float thr   = mix(0.16, 0.84, uCorrode);
+    float thr   = mix(THR_LO, THR_HI, uCorrode);
     float w     = max(uEdge, 1e-3);
     float onset = smoothstep(0.0, 0.10, uCorrode);
 
@@ -126,8 +144,10 @@ export const PORTAL_FRAG = /* glsl */ `
     vec4  acc  = vec4(0.0);
     float wsum = 0.0;
 
+    float spread = max(float(TAPS - 1), 1.0);
+
     for (int i = 0; i < TAPS; i++) {
-      float t    = float(i) / float(TAPS - 1);
+      float t    = float(i) / spread;
       float pull = 1.0 - uBlur * t;
       float wt   = 1.0 - t * 0.55;
       vec2  base = ray * pull / uZoom;

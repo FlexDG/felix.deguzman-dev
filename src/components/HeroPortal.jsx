@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import * as THREE from 'three'
 import { PORTAL_FRAG, PORTAL_VERT } from '../shaders/heroPortal'
+import { DUST_FRAG, DUST_VERT } from '../shaders/heroDust'
+import { planDust, sampleDust } from '../lib/heroDust'
+import { isLowPerf } from '../lib/perf'
 import { onViewportResize } from '../hooks/onViewportResize'
 
 const FOCAL = {
@@ -15,16 +18,10 @@ const ROOM_FROM = [0.8902, 0.8706, 0.9882]
 const ROOM_TO = [0.128, 0.086, 0.161]
 
 const LOCK_ZOOM = 2.4
+const DUST_SPAN = 0.55
+const DUST_ZOOM = LOCK_ZOOM * 1.25
 
-const TIER = (() => {
-  if (typeof window === 'undefined') return 'high'
-  const coarse = window.matchMedia?.('(pointer: coarse)').matches
-  const cores = navigator.hardwareConcurrency || 8
-  const mem = navigator.deviceMemory || 8
-  return coarse || cores <= 4 || mem <= 4 ? 'low' : 'high'
-})()
-
-const LOW = TIER === 'low'
+const LOW = isLowPerf()
 
 const MAX_DPR = LOW ? 1.4 : 1.75
 const FRAG_CAP = LOW ? 1.9e6 : 3.2e6
@@ -52,6 +49,8 @@ function detectWebgl() {
   }
 }
 
+const GL_POINT_SIZE_RANGE = 0x846d
+
 const HAS_WEBGL = detectWebgl()
 
 function makeUniforms() {
@@ -71,6 +70,11 @@ function makeUniforms() {
     uVignette: { value: 0 },
     uGrain: { value: 0 },
     uCover: { value: 0 },
+    uSpan: { value: DUST_SPAN },
+    uTail: { value: 0 },
+    uCell: { value: 2 },
+    uFlake: { value: 1 },
+    uDpr: { value: 1 },
     uTime: { value: 0 },
     uBg: { value: new THREE.Vector3(...ROOM_FROM) },
   }
@@ -123,7 +127,7 @@ export default function HeroPortal({ apiRef, onReady }) {
     const material = new THREE.ShaderMaterial({
       uniforms,
       defines: {
-        TAPS: LOW ? 4 : 6,
+        TAPS: LOW ? 1 : 3,
         OCT: LOW ? 2 : 3,
         USE_CA: LOW ? false : 1,
       },
@@ -135,7 +139,21 @@ export default function HeroPortal({ apiRef, onReady }) {
       depthWrite: false,
     })
     const geometry = new THREE.PlaneGeometry(2, 2)
-    scene.add(new THREE.Mesh(geometry, material))
+    const quad = new THREE.Mesh(geometry, material)
+    quad.renderOrder = 0
+    scene.add(quad)
+
+    let dust = null
+    let dustCols = 0
+
+    const disposeDust = () => {
+      if (!dust) return
+      scene.remove(dust.points)
+      dust.geometry.dispose()
+      dust.material.dispose()
+      dust = null
+      dustCols = 0
+    }
 
     const paint = () => {
       if (!uniforms.uTex.value || renderer.getContext().isContextLost()) return
@@ -145,6 +163,93 @@ export default function HeroPortal({ apiRef, onReady }) {
     const loader = new THREE.TextureLoader()
     let loadedSrc = null
     let disposed = false
+    let idle = 0
+    let idleIsTimeout = false
+    let dustSource = null
+    let dustBlocked = false
+
+    const buildDust = (image) => {
+      if (disposed || !image) return
+
+      if (dustBlocked) return
+
+      const rect = uniforms.uRect.value
+      if (rect.z < 24 || rect.w < 24) return
+
+      if (renderer.getContext().getParameter(GL_POINT_SIZE_RANGE)[1] < 8) {
+        dustBlocked = true
+        return
+      }
+
+      const { cols, rows, flake } = planDust({
+        boxW: rect.z,
+        boxH: rect.w,
+        zoom: DUST_ZOOM,
+        low: LOW,
+      })
+
+      const grid = sampleDust(image, cols, rows)
+      if (disposed) return
+      if (!grid) {
+        dustBlocked = true
+        return
+      }
+
+      disposeDust()
+
+      const dustGeometry = new THREE.BufferGeometry()
+      dustGeometry.setAttribute('position', new THREE.BufferAttribute(grid.uv, 2))
+      dustGeometry.setAttribute('aColor', new THREE.BufferAttribute(grid.color, 4, true))
+      dustGeometry.setAttribute('aRnd', new THREE.BufferAttribute(grid.rnd, 4, true))
+      dustGeometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0.5, 0.5, 0), 1)
+
+      const dustMaterial = new THREE.ShaderMaterial({
+        uniforms,
+        defines: { OCT: LOW ? 2 : 3 },
+        vertexShader: DUST_VERT,
+        fragmentShader: DUST_FRAG,
+        transparent: true,
+        blending: THREE.NormalBlending,
+        premultipliedAlpha: true,
+        depthTest: false,
+        depthWrite: false,
+      })
+
+      const points = new THREE.Points(dustGeometry, dustMaterial)
+      points.frustumCulled = false
+      points.renderOrder = 1
+      scene.add(points)
+
+      dust = { points, geometry: dustGeometry, material: dustMaterial, count: grid.count }
+      dustCols = grid.cols
+      uniforms.uFlake.value = flake
+      uniforms.uCell.value = rect.z / grid.cols
+      paint()
+    }
+
+    const cancelDustBuild = () => {
+      if (!idle) return
+      if (idleIsTimeout) clearTimeout(idle)
+      else window.cancelIdleCallback?.(idle)
+      idle = 0
+    }
+
+    const scheduleDust = (image, timeout = 1500) => {
+      dustSource = image
+      if (dustBlocked) return
+      cancelDustBuild()
+      const run = () => {
+        idle = 0
+        buildDust(image)
+      }
+      if (window.requestIdleCallback) {
+        idleIsTimeout = false
+        idle = window.requestIdleCallback(run, { timeout })
+      } else {
+        idleIsTimeout = true
+        idle = setTimeout(run, Math.min(timeout, 120))
+      }
+    }
 
     const loadTexture = (src) => {
       if (!src || src === loadedSrc) return
@@ -165,6 +270,7 @@ export default function HeroPortal({ apiRef, onReady }) {
         tex.needsUpdate = true
         uniforms.uTex.value?.dispose()
         uniforms.uTex.value = tex
+        scheduleDust(tex.image, active ? 200 : 1500)
         paint()
       })
     }
@@ -186,6 +292,12 @@ export default function HeroPortal({ apiRef, onReady }) {
         Math.max(1, box.width),
         Math.max(1, box.height),
       )
+
+      uniforms.uDpr.value = renderer.getPixelRatio()
+      if (dustCols) uniforms.uCell.value = uniforms.uRect.value.z / dustCols
+      if (!idle && !dust && !dustBlocked && dustSource && uniforms.uRect.value.z >= 24) {
+        scheduleDust(dustSource, 400)
+      }
 
       const src = img.currentSrc || img.src
       const focal = /mobile_hero/.test(src) ? FOCAL.mobile : FOCAL.desktop
@@ -258,6 +370,7 @@ export default function HeroPortal({ apiRef, onReady }) {
         if (next === active) return
         active = next
         if (next) {
+          if (!dust && dustSource) scheduleDust(dustSource, 200)
           warmup = 0
           sampled = 0
           slow = 0
@@ -272,7 +385,9 @@ export default function HeroPortal({ apiRef, onReady }) {
       window.__heroPortal = {
         uniforms,
         renderer,
+        material,
         room: { from: ROOM_FROM, to: ROOM_TO },
+        dust: () => dust?.count ?? 0,
         draw: () => renderer.render(scene, camera),
       }
     }
@@ -288,6 +403,8 @@ export default function HeroPortal({ apiRef, onReady }) {
       canvas.removeEventListener('webglcontextlost', onContextLost)
       canvas.removeEventListener('webglcontextrestored', onContextRestored)
       document.documentElement.removeAttribute('data-portal-lost')
+      cancelDustBuild()
+      disposeDust()
       uniforms.uTex.value?.dispose()
       geometry.dispose()
       material.dispose()

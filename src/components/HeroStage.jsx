@@ -4,7 +4,6 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Hero from './Hero'
-import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -127,24 +126,25 @@ function buildWebgl(tl, q, api) {
   )
 
   tl.to(u.uZoom, { value: 1.35, duration: 0.18, ease: 'power1.out' }, 0.02)
-    .to(u.uZoom, { value: api.lockZoom, duration: 0.38, ease: 'power1.in' }, 0.18)
-    .to(u.uCentering, { value: 1, duration: 0.38, ease: 'power2.out' }, 0.16)
+    .to(u.uZoom, { value: api.lockZoom, duration: 0.32, ease: 'power1.in' }, 0.18)
+    .to(u.uCentering, { value: 1, duration: 0.34, ease: 'power2.out' }, 0.16)
     .to(u.uGrain, { value: 1, duration: 0.16 }, 0.16)
     .to(u.uVignette, { value: 1, duration: 0.28, ease: 'power1.out' }, 0.22)
-    .to(u.uBlur, { value: 0.08, duration: 0.32, ease: 'power2.in' }, 0.28)
-    .to(u.uAberration, { value: 0.02, duration: 0.3, ease: 'power2.in' }, 0.3)
+    .to(u.uAberration, { value: 0.02, duration: 0.28, ease: 'power2.in' }, 0.28)
 
-  tl.to(u.uCorrode, { value: 1, duration: 0.44, ease: 'none' }, 0.52)
-    .to(u.uEdge, { value: 0.05, duration: 0.3, ease: 'power1.in' }, 0.6)
+  tl.to(u.uCorrode, { value: 1, duration: 0.26, ease: 'none' }, 0.5)
+    .to(u.uEdge, { value: 0.05, duration: 0.2, ease: 'power1.in' }, 0.54)
 
-    .to(u.uZoom, { value: api.lockZoom * 1.85, duration: 0.44, ease: 'power1.in' }, 0.52)
-    .to(u.uVignette, { value: 0.25, duration: 0.16 }, 0.6)
-    .to(u.uVignette, { value: 0, duration: 0.14 }, 0.78)
+    .to(u.uZoom, { value: api.lockZoom * 1.5, duration: 0.26, ease: 'none' }, 0.5)
+    .to(u.uVignette, { value: 0.25, duration: 0.14 }, 0.54)
+    .to(u.uVignette, { value: 0, duration: 0.14 }, 0.7)
 
-    .to(u.uAberration, { value: 0, duration: 0.12 }, 0.8)
-    .to(u.uGrain, { value: 0, duration: 0.14 }, 0.82)
+    .to(u.uAberration, { value: 0, duration: 0.12 }, 0.72)
+    .to(u.uGrain, { value: 0, duration: 0.14 }, 0.74)
 
-  tl.to(u.uWhite, { value: 1, duration: 0.05 }, 0.94)
+  tl.to(u.uTail, { value: 1, duration: 0.15, ease: 'none' }, 0.76)
+
+  tl.to(u.uWhite, { value: 1, duration: 0.06 }, 0.93)
 }
 
 function buildCss(tl, q, api) {
@@ -160,10 +160,6 @@ function buildCss(tl, q, api) {
       { scale: 22, duration: 0.26, ease: 'power3.in' },
       0.66,
     )
-
-    if (!isLowPerf()) {
-      tl.to(figure, { filter: 'blur(26px)', duration: 0.3, ease: 'power2.in' }, 0.6)
-    }
   }
 
   const el = api.el

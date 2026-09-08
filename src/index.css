@@ -743,6 +743,12 @@
     var(--about-fringe) 0 0 rgb(47 31 58 / 0.35);
 }
 
+@media (max-width: 1023px) {
+  [data-about="heading"] {
+    text-shadow: none;
+  }
+}
+
 @property --about-card-w {
   syntax: "<length>";
   inherits: true;
@@ -1153,9 +1159,6 @@
 @media (max-width: 767px) {
   [data-me="orbit-wrap"] {
     display: none;
-  }
-  .initial-about-mobile-height {
-    height: 90svh;
   }
 }
 

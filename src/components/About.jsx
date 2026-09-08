@@ -4,7 +4,6 @@ import { Fragment, useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Pill } from './Process'
-import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -182,7 +181,8 @@ export default function About() {
         const rig = q('[data-about="rig"]')[0]
         const group = q('[data-about="group"]')[0]
         const heading = q('[data-about="heading"]')[0]
-        const plane = q('[data-about="eyebrow"], [data-about="hword"]')
+        const plane = q('[data-about="hword"]')
+        const eyebrow = q('[data-about="eyebrow"]')
         const bWords = q('[data-about="bword"]')
         if (!stage || !rig || !group || !heading) return
 
@@ -202,18 +202,18 @@ export default function About() {
           },
         )
 
-        const startScale = narrow ? 3.4 : 5.5
-        const blur = narrow || isLowPerf() ? 0 : 20
-        const fringe = narrow ? 2 : 6
+        const startScale = narrow ? 2.6 : 5.5
+        const fringe = narrow ? 0 : 6
 
         const settle = () => gsap.utils.clamp(20, 64, window.innerHeight * 0.06)
 
         gsap.set(group, {
           z: zForScale(startScale),
           rotateX: narrow ? 4 : 7,
-          filter: blur ? `blur(${blur}px)` : 'none',
+          filter: 'none',
         })
         gsap.set(plane, { opacity: 0 })
+        gsap.set(eyebrow, { opacity: 0 })
         gsap.set(bWords, { autoAlpha: 0, yPercent: 60 })
 
         const tl = gsap.timeline({
@@ -231,18 +231,6 @@ export default function About() {
           .to(group, { rotateX: 0, duration: 0.46, ease: 'power1.out' }, 0.05)
 
           .to(plane, { opacity: 1, duration: 0.05, stagger: 0.014 }, 0.05)
-
-          .fromTo(
-            heading,
-            { '--about-fringe': `${fringe}px` },
-            {
-              '--about-fringe': '0px',
-              duration: 0.18,
-              ease: 'power2.out',
-              immediateRender: true,
-            },
-            0.34,
-          )
 
           .fromTo(
             group,
@@ -263,13 +251,21 @@ export default function About() {
             0.5,
           )
 
+          .to(eyebrow, { opacity: 1, duration: 0.08, ease: 'power1.out' }, 0.56)
+
           .set({}, {}, 1)
 
-        if (blur) {
-          tl.to(group, { filter: 'blur(0px)', duration: 0.3, ease: 'power2.out' }, 0.06).set(
-            group,
-            { filter: 'none' },
-            0.4,
+        if (fringe) {
+          tl.fromTo(
+            heading,
+            { '--about-fringe': `${fringe}px` },
+            {
+              '--about-fringe': '0px',
+              duration: 0.18,
+              ease: 'power2.out',
+              immediateRender: true,
+            },
+            0.34,
           )
         }
 
@@ -363,7 +359,7 @@ export default function About() {
   return (
     <section ref={rootRef} id="about" aria-label="About" className="relative z-[1] w-full bg-white">
       <div data-about="stage" className="relative h-[calc(100svh+var(--about-runway))]">
-        <div className="initial-about-mobile-height sticky top-0 h-[100lvh] w-full">
+        <div className="sticky top-0 h-[100lvh] w-full">
           <div data-about="rig" className="absolute inset-0 overflow-hidden">
             <div
               className="absolute inset-0 grid place-items-center page-x"

@@ -23,11 +23,17 @@ const SEL = {
   ctaSecondary: '[data-hero-cta="secondary"]',
   img: '[data-hero-img]',
   figure: '[data-hero="figure"]',
+  sign: '[data-hero-sign]',
+  signPath: '[data-hero-sign-path]',
   slot: '[data-about="slot"]',
   rig: '[data-about="rig"]',
   navLogo: '[data-nav-logo] img',
   navCta: '[data-nav-cta]',
 }
+
+const SIGN_INK_LEFT = 0.354
+const SIGN_INK_RIGHT = 0.08
+const SIGN_INK_TOP = 0.08
 
 const LOGO_F = { left: 0.095, top: 0.1, right: 0.5, bottom: 0.9095 }
 
@@ -137,6 +143,20 @@ function buildShrink(tl, q, pane) {
   const figureTop = figure ? figure.offsetTop : paneH - windowH
   const restTop = gsap.utils.clamp(0, slack, figureTop - headroom)
 
+  const sign = document.querySelector(SEL.sign)
+  if (sign && sign.viewBox.baseVal.width) {
+    const vb = sign.viewBox.baseVal
+    const path = sign.querySelector(SEL.signPath)
+    const bb = path ? path.getBBox() : null
+    const ink = bb && bb.width > 0 && bb.height > 0 ? bb : { x: 0, y: 0, width: vb.width, height: vb.height }
+    const span = 1 + SIGN_INK_LEFT + SIGN_INK_RIGHT
+    const unit = (target.width * span) / ink.width
+    sign.style.width = `${vb.width * unit}px`
+    sign.style.height = `${vb.height * unit}px`
+    sign.style.left = `${target.left - target.width * SIGN_INK_LEFT - ink.x * unit}px`
+    sign.style.top = `${target.top - target.height * SIGN_INK_TOP - ink.y * unit}px`
+  }
+
   frames.forEach((frame) => {
     frame.style.transformOrigin = '50% 50%'
   })
@@ -169,10 +189,97 @@ function buildShrink(tl, q, pane) {
     })
     canvas.style.transform = ''
     canvas.style.transformOrigin = ''
+    if (sign) sign.style.cssText = ''
   }
 }
 
 const shown = (el) => !!el && el.offsetParent !== null
+
+// The hero pane is sticky, so it always makes a stacking context — nothing
+// inside it can paint above the navbar. Anything flying INTO the navbar has to
+// travel in a sibling layer above it, the way useNavMorph flies its labels.
+function flightLayer() {
+  let layer = document.querySelector('[data-hero-flight]')
+  if (!layer) {
+    layer = document.createElement('div')
+    layer.setAttribute('data-hero-flight', '')
+    layer.style.cssText =
+      'position:fixed;inset:0;z-index:101;pointer-events:none;contain:layout style;'
+    document.body.appendChild(layer)
+  }
+  return layer
+}
+
+const INHERITED = [
+  'fontFamily',
+  'fontSize',
+  'fontWeight',
+  'fontStyle',
+  'lineHeight',
+  'letterSpacing',
+  'textTransform',
+  'textAlign',
+  'wordSpacing',
+  'whiteSpace',
+  'color',
+]
+
+function liftInto(el, rest) {
+  const cs = getComputedStyle(el)
+  const before = {}
+  INHERITED.forEach((prop) => {
+    before[prop] = cs[prop]
+  })
+
+  const ghost = document.createElement(el.tagName.toLowerCase())
+  ghost.setAttribute('aria-hidden', 'true')
+  ghost.textContent = el.textContent
+  ghost.style.cssText =
+    `display:${cs.display};width:${rest.width}px;height:${rest.height}px;` +
+    `margin:${cs.margin};padding:0;border:0;font:${cs.font};` +
+    `vertical-align:${cs.verticalAlign};visibility:hidden;pointer-events:none;`
+
+  const parent = el.parentNode
+  const next = el.nextSibling
+  parent.insertBefore(ghost, el)
+
+  // A holder carries the position so the element keeps its own display —
+  // position:absolute would blockify inline-flex and change its intrinsic width.
+  const holder = document.createElement('div')
+  holder.style.cssText =
+    'position:absolute;left:0;top:0;margin:0;padding:0;border:0;white-space:nowrap;'
+  flightLayer().appendChild(holder)
+  holder.appendChild(el)
+
+  // Out of its original parent the element inherits from <body>, so the hero
+  // wordmark loses its 489px font. Pin back only what actually drifted —
+  // pinning more perturbs the intrinsic size of elements that were already fine.
+  const after = getComputedStyle(el)
+  const carried = []
+  INHERITED.forEach((prop) => {
+    if (after[prop] !== before[prop]) {
+      el.style[prop] = before[prop]
+      carried.push(prop)
+    }
+  })
+
+  // Baseline and margin collapsing mean the child does not land exactly on the
+  // holder's origin, so correct by whatever it actually came out at.
+  holder.style.left = `${rest.left}px`
+  holder.style.top = `${rest.top}px`
+  const got = el.getBoundingClientRect()
+  holder.style.left = `${rest.left * 2 - got.left}px`
+  holder.style.top = `${rest.top * 2 - got.top}px`
+
+  return () => {
+    carried.forEach((prop) => {
+      el.style[prop] = ''
+    })
+    parent.insertBefore(el, next)
+    ghost.remove()
+    holder.remove()
+  }
+}
 
 function buildCopy(tl, q, splits, wide) {
   // Below md the notes and the CTA row are display:none — splitting and tweening
@@ -208,7 +315,7 @@ function buildCopy(tl, q, splits, wide) {
     AT.stat[0],
   ).to(
     q(SEL.cardStat),
-    { opacity: 0, duration: AT.statFade[1] - AT.statFade[0], ease: 'power1.in' },
+    { autoAlpha: 0, duration: AT.statFade[1] - AT.statFade[0], ease: 'power1.in' },
     AT.statFade[0],
   )
 
@@ -230,7 +337,7 @@ function buildCopy(tl, q, splits, wide) {
   }
 }
 
-function buildFlight(tl, q) {
+function buildFlight(tl, q, lifts) {
   const wordF = q(SEL.wordF)[0]
   const logo = document.querySelector(SEL.navLogo)
   if (!wordF || !logo) return
@@ -251,6 +358,7 @@ function buildFlight(tl, q) {
     transformOrigin: `${ink.left - box.left}px ${ink.top - box.top}px`,
   })
   gsap.set(logo, { autoAlpha: 0 })
+  lifts.push(() => liftInto(wordF, box))
 
   tl.to(
     wordF,
@@ -259,16 +367,18 @@ function buildFlight(tl, q) {
       y: target.top - ink.top,
       scaleX: target.width / ink.width,
       scaleY: target.height / ink.height,
-      duration: AT.flight[1] - AT.flight[0],
+      duration: AT.handoff - AT.flight[0],
       ease: 'power1.inOut',
     },
     AT.flight[0],
   )
-    .to(logo, { autoAlpha: 1, duration: 0.05, ease: 'power1.out' }, AT.handoff)
-    .to(wordF, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, AT.handoff + 0.01)
+    // The F has landed and sits still; the mark fades in over it so the D reads
+    // as arriving, then the F is cut once the mark is opaque enough to hide it.
+    .to(logo, { autoAlpha: 1, duration: AT.flight[1] - AT.handoff, ease: 'power1.out' }, AT.handoff)
+    .set(wordF, { autoAlpha: 0 }, AT.flight[1])
 }
 
-function buildCta(tl, q) {
+function buildCta(tl, q, lifts) {
   const primary = q(SEL.ctaPrimary)[0]
   const secondary = q(SEL.ctaSecondary)[0]
   const navCta = document.querySelector(SEL.navCta)
@@ -287,6 +397,7 @@ function buildCta(tl, q) {
 
   gsap.set([primary, secondary], { transformOrigin: 'top left' })
   gsap.set(navCta, { autoAlpha: 0 })
+  lifts.push(() => liftInto(primary, from))
 
   tl.to(
     secondary,
@@ -336,8 +447,13 @@ function buildCta(tl, q) {
     AT.ctaFlight[0],
   )
 
-  tl.to(navCta, { autoAlpha: 1, duration: 0.05, ease: 'power1.out' }, AT.handoff + 0.02)
-    .to(primary, { autoAlpha: 0, duration: 0.05, ease: 'power1.in' }, AT.handoff + 0.03)
+  // Both are the same button at the same rect by now, so swap on one frame.
+  // Cross-fading them stacks two translucent copies and reads as a ghost.
+  tl.set(navCta, { autoAlpha: 1 }, AT.ctaFlight[1]).set(
+    primary,
+    { autoAlpha: 0 },
+    AT.ctaFlight[1],
+  )
 }
 
 export default function HeroStage() {
@@ -370,6 +486,8 @@ export default function HeroStage() {
         let building = false
         let disposed = false
         let builtKey = ''
+        let lifts = []
+        let drops = []
 
         const handoffs = [SEL.navLogo, SEL.navCta]
 
@@ -382,6 +500,9 @@ export default function HeroStage() {
           clearShrink?.()
           clearShrink = null
           pane.removeAttribute('data-shrinking')
+          drops.forEach((drop) => drop())
+          drops = []
+          lifts = []
           splits.forEach((split) => split.revert())
           splits = []
           handoffs.forEach((sel) => {
@@ -400,8 +521,8 @@ export default function HeroStage() {
           clearShrink = buildShrink(tl, q, pane)
           buildCopy(tl, q, splits, wide)
           if (wide) {
-            buildFlight(tl, q)
-            buildCta(tl, q)
+            buildFlight(tl, q, lifts)
+            buildCta(tl, q, lifts)
           }
           tl.set({}, {}, 1)
 
@@ -413,7 +534,15 @@ export default function HeroStage() {
             end: () => `+=${pane.offsetHeight}`,
             scrub: wide ? true : 0.4,
             animation: tl,
-            onToggle: (self) => pane.toggleAttribute('data-shrinking', self.isActive),
+            onToggle: (self) => {
+              pane.toggleAttribute('data-shrinking', self.isActive)
+              // Deferred to first scroll so the intro still animates these in
+              // place; nothing can scroll while the curtain is up.
+              if (self.isActive && lifts.length) {
+                drops = lifts.map((lift) => lift())
+                lifts = []
+              }
+            },
           })
           building = false
         }
@@ -460,12 +589,24 @@ export default function HeroStage() {
         }
         ScrollTrigger.addEventListener('refresh', onRefresh)
 
+        // The intro parks the hero cast 30px low while it plays, so anything
+        // measured during it is off by that. Its own refresh cannot be trusted
+        // to rebuild us — the offset is a transform, so layoutKey sees no
+        // change — and the rects only settle once the intro reverts them.
+        const onIntroDone = () => {
+          if (disposed) return
+          ready = true
+          build()
+        }
+        window.addEventListener('hero:intro-done', onIntroDone)
+
         return () => {
           disposed = true
           cancelAnimationFrame(raf)
           cancelAnimationFrame(queued)
           watch.disconnect()
           img?.removeEventListener('load', refresh)
+          window.removeEventListener('hero:intro-done', onIntroDone)
           ScrollTrigger.removeEventListener('refresh', onRefresh)
           teardown()
         }
@@ -480,7 +621,7 @@ export default function HeroStage() {
     <div
       ref={stageRef}
       data-hero-stage
-      className="relative z-[2] h-[var(--hero-stage-h)]"
+      className="pointer-events-none relative z-[2] h-[var(--hero-stage-h)]"
     >
       <Hero />
     </div>

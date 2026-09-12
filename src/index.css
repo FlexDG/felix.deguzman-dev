@@ -153,6 +153,7 @@
   --about-slot-h: min(var(--about-slot-max), 36svh, 26vw);
   --about-slot-w: var(--about-slot-h);
   --about-slot-gap: clamp(6px, 0.9vw, 18px);
+  --about-sign-w: min(380px, 46vw);
   --about-heading-w: calc(17ch + var(--about-slot-w) + 2 * var(--about-slot-gap));
 
   --about-heading-size: clamp(2.25rem, 5.2vw, 4.5rem);

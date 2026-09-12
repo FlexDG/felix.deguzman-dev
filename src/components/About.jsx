@@ -205,6 +205,14 @@ export default function About() {
         gsap.set(eyebrow, { opacity: 0 })
         gsap.set(body, { autoAlpha: 0, yPercent: 18 })
 
+        const sign = document.querySelector('[data-hero-sign-path]')
+        const penLength = sign ? sign.getTotalLength() : 0
+        const signSvg = sign ? sign.closest('svg') : null
+        if (sign) {
+          gsap.set(sign, { strokeDasharray: penLength, strokeDashoffset: penLength + 1 })
+          gsap.set(signSvg, { autoAlpha: 0 })
+        }
+
         const tl = gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
@@ -216,24 +224,31 @@ export default function About() {
           },
         })
 
+        tl.to(eyebrow, { opacity: 1, duration: 0.06, ease: 'power1.out' }, 0.02)
+
+        if (sign) {
+          tl.set(signSvg, { autoAlpha: 1 }, 0.03).to(
+            sign,
+            { strokeDashoffset: 0, duration: 0.24, ease: 'power1.inOut' },
+            0.04,
+          )
+        }
+
         tl.to(
           hWords,
           {
             autoAlpha: 1,
             yPercent: 0,
-            duration: 0.055,
+            duration: 0.06,
             ease: 'power2.out',
-            stagger: 0.2 / Math.max(hWords.length - 1, 1),
+            stagger: 0.22 / Math.max(hWords.length - 1, 1),
           },
-          0.02,
+          0.32,
         )
-
-          .to(eyebrow, { opacity: 1, duration: 0.08, ease: 'power1.out' }, 0.1)
-
           .to(
             body,
             { autoAlpha: 1, yPercent: 0, duration: 0.18, ease: 'power2.out' },
-            0.24,
+            0.62,
           )
 
           .set({}, {}, 1)

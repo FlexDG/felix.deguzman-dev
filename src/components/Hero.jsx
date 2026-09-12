@@ -12,6 +12,7 @@ import claudeIcon from '../assets/icons/claude.svg'
 import figmaIcon from '../assets/icons/figma.svg'
 import adobeIcon from '../assets/icons/adobecreativecloud.svg'
 import HeadlineRotator from './HeadlineRotator'
+import { SIGNATURE } from './signature'
 
 const HEADLINE_ROLES = [
   'Designs UIs',
@@ -309,6 +310,25 @@ export default function Hero() {
         className="absolute inset-0 z-0 overflow-hidden bg-hero-bg"
         aria-hidden="true"
       />
+
+      <svg
+        data-hero-sign
+        viewBox={SIGNATURE.viewBox}
+        aria-hidden="true"
+        focusable="false"
+        className="pointer-events-none absolute left-0 top-0 z-[2] w-0 opacity-0"
+      >
+        <path
+          data-hero-sign-path
+          d={SIGNATURE.d}
+          fill="none"
+          stroke="#ff587d"
+          strokeWidth={SIGNATURE.width}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
 
       <div data-hero="title" className="absolute inset-x-0 z-0 top-[var(--hero-title-top)]">
         <h1

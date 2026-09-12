@@ -254,7 +254,8 @@ export default function AboutMe() {
           spin.play()
         }
 
-        const hide = () => {
+        const hide = (fast) => {
+          nudges.forEach((n) => n.removeAttribute('data-open'))
           if (!open) return
           open = false
 
@@ -268,13 +269,12 @@ export default function AboutMe() {
           gsap.to(orbit, {
             autoAlpha: 0,
             scale: 0.86,
-            duration: 0.32,
+            duration: fast === true ? 0.1 : 0.32,
             ease: 'power2.in',
             overwrite: 'auto',
             onComplete: () => spin.pause(),
           })
 
-          nudges.forEach((n) => n.removeAttribute('data-open'))
           gsap.to(spin, { timeScale: 1, duration: 0.3, overwrite: true })
         }
 
@@ -344,14 +344,6 @@ export default function AboutMe() {
           el.addEventListener('focusin', show)
         })
 
-        ScrollTrigger.create({
-          trigger: q('[data-me="stage"]')[0],
-          start: 'top bottom',
-          end: 'bottom top',
-          onLeave: hide,
-          onLeaveBack: hide,
-        })
-
         nudges.forEach((n) => {
           n.addEventListener('pointerenter', slow)
           n.addEventListener('pointerleave', resume)
@@ -365,23 +357,29 @@ export default function AboutMe() {
         document.addEventListener('pointerdown', onOutside)
         document.addEventListener('keydown', onKey)
 
-        const closeAll = () => {
-          nudges.forEach((n) => n.removeAttribute('data-open'))
-          hide()
-        }
-
         const away = ScrollTrigger.create({
           trigger: q('[data-me="stage"]')[0] || root,
           start: 'top bottom',
           end: 'bottom top',
-          onLeave: closeAll,
-          onLeaveBack: closeAll,
+          onLeave: () => hide(),
+          onLeaveBack: () => hide(),
         })
+
+        const next = document.querySelector('[data-pj="root"]')
+        const handoff = next
+          ? ScrollTrigger.create({
+              trigger: next,
+              start: 'top bottom',
+              end: 'bottom top',
+              onEnter: () => hide(true),
+            })
+          : null
 
         if (import.meta.env.DEV) window.__meWheel = { show, hide, spin }
 
         return () => {
           away.kill()
+          handoff?.kill()
           handles.forEach((el) => {
             el.removeEventListener('pointerenter', openIfMoved)
             el.removeEventListener('pointermove', openIfMoved)

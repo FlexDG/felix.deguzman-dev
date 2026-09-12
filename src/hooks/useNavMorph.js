@@ -15,8 +15,6 @@ const SEL = {
   face: '[data-navcard-face]',
   shell: '[data-nav-shell]',
   pill: '[data-nav-pill]',
-  logo: '[data-nav-logo]',
-  cta: '[data-nav-cta]',
 }
 
 function inkRect(el) {
@@ -70,8 +68,6 @@ function createFlight() {
   const face = card?.querySelector(SEL.face)
   const shell = document.querySelector(SEL.shell)
   const pill = shell?.querySelector(SEL.pill)
-  const logo = shell?.querySelector(SEL.logo)
-  const cta = shell?.querySelector(SEL.cta)
 
   const pairs = MENU_ITEMS.map((item) => ({
     href: item.href,
@@ -184,22 +180,6 @@ function createFlight() {
   })
 
   tl.to(shell, { opacity: 1, duration: 0.34, ease: 'power1.out' }, 0.52)
-  if (logo) {
-    tl.fromTo(
-      logo,
-      { y: -10, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.28, ease: 'power2.out' },
-      0.58,
-    )
-  }
-  if (cta) {
-    tl.fromTo(
-      cta,
-      { y: -10, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.28, ease: 'power2.out' },
-      0.64,
-    )
-  }
 
   tl.to(
     labelFlyers.map((f) => f.holder),

@@ -7,7 +7,9 @@ import { Pill } from './Process'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const HEADING = 'I build both halves of the product.'
+const HEADING_LEAD = 'I build both'
+const HEADING_TAIL = 'halves'
+const HEADING_REST = 'of the product.'
 
 const BODY = [
   'I write custom code,',
@@ -39,9 +41,6 @@ const CARDS = [
     body: 'Deploys, handover and the ongoing care that decides whether it is still up in a year.',
   },
 ]
-
-const PERSPECTIVE = 1200
-const zForScale = (scale) => PERSPECTIVE * (1 - 1 / scale)
 
 function VSCodeMark(props) {
   return (
@@ -181,9 +180,9 @@ export default function About() {
         const rig = q('[data-about="rig"]')[0]
         const group = q('[data-about="group"]')[0]
         const heading = q('[data-about="heading"]')[0]
-        const plane = q('[data-about="hword"]')
+        const hWords = q('[data-about="hword"]')
         const eyebrow = q('[data-about="eyebrow"]')
-        const bWords = q('[data-about="bword"]')
+        const body = q('[data-about="body"]')
         if (!stage || !rig || !group || !heading) return
 
         gsap.fromTo(
@@ -202,72 +201,42 @@ export default function About() {
           },
         )
 
-        const startScale = narrow ? 2.6 : 5.5
-        const fringe = narrow ? 0 : 6
-
-        const settle = () => gsap.utils.clamp(20, 64, window.innerHeight * 0.06)
-
-        gsap.set(group, {
-          z: zForScale(startScale),
-          rotateX: narrow ? 4 : 7,
-          filter: 'none',
-        })
-        gsap.set(plane, { opacity: 0 })
+        gsap.set(hWords, { autoAlpha: 0, yPercent: 60 })
         gsap.set(eyebrow, { opacity: 0 })
-        gsap.set(bWords, { autoAlpha: 0, yPercent: 60 })
+        gsap.set(body, { autoAlpha: 0, yPercent: 18 })
 
         const tl = gsap.timeline({
           defaults: { ease: 'none' },
           scrollTrigger: {
             trigger: stage,
-            start: 'top bottom',
+            start: 'top top',
             end: 'bottom bottom',
             scrub: narrow ? 0.4 : true,
             invalidateOnRefresh: true,
           },
         })
 
-        tl.to(group, { z: 0, duration: 0.46, ease: 'power1.inOut' }, 0.05)
-          .to(group, { rotateX: 0, duration: 0.46, ease: 'power1.out' }, 0.05)
+        tl.to(
+          hWords,
+          {
+            autoAlpha: 1,
+            yPercent: 0,
+            duration: 0.055,
+            ease: 'power2.out',
+            stagger: 0.2 / Math.max(hWords.length - 1, 1),
+          },
+          0.02,
+        )
 
-          .to(plane, { opacity: 1, duration: 0.05, stagger: 0.014 }, 0.05)
-
-          .fromTo(
-            group,
-            { y: settle },
-            { y: 0, duration: 0.14, ease: 'power2.out', immediateRender: true },
-            0.46,
-          )
+          .to(eyebrow, { opacity: 1, duration: 0.08, ease: 'power1.out' }, 0.1)
 
           .to(
-            bWords,
-            {
-              autoAlpha: 1,
-              yPercent: 0,
-              duration: 0.055,
-              ease: 'power2.out',
-              stagger: 0.4 / Math.max(bWords.length - 1, 1),
-            },
-            0.5,
+            body,
+            { autoAlpha: 1, yPercent: 0, duration: 0.18, ease: 'power2.out' },
+            0.24,
           )
-
-          .to(eyebrow, { opacity: 1, duration: 0.08, ease: 'power1.out' }, 0.56)
 
           .set({}, {}, 1)
-
-        if (fringe) {
-          tl.fromTo(
-            heading,
-            { '--about-fringe': `${fringe}px` },
-            {
-              '--about-fringe': '0px',
-              duration: 0.18,
-              ease: 'power2.out',
-              immediateRender: true,
-            },
-            0.34,
-          )
-        }
 
         if (import.meta.env.DEV) window.__aboutTl = tl
       },
@@ -357,13 +326,18 @@ export default function About() {
   }, [])
 
   return (
-    <section ref={rootRef} id="about" aria-label="About" className="relative z-[1] w-full bg-white">
-      <div data-about="stage" className="relative h-[calc(100svh+var(--about-runway))]">
+    <section
+      ref={rootRef}
+      id="about"
+      aria-label="About"
+      className="relative z-[1] mt-[calc(-1*var(--hero-about-pull))] w-full bg-white"
+    >
+      <div data-about="stage" className="relative h-[calc(100lvh+var(--about-runway))]">
         <div className="sticky top-0 h-[100lvh] w-full">
           <div data-about="rig" className="absolute inset-0 overflow-hidden">
             <div
-              className="absolute inset-0 grid place-items-center page-x"
-              style={{ perspective: `${PERSPECTIVE}px` }}
+              className="absolute inset-0 grid place-items-center page-x
+                         pt-[var(--about-rig-top)]"
             >
               <div
                 data-about="group"
@@ -373,16 +347,36 @@ export default function About() {
                   <Pill>About</Pill>
                 </p>
 
+                <span
+                  data-about="slot"
+                  data-slot="stack"
+                  aria-hidden="true"
+                  className="mx-auto mb-[clamp(16px,2.6svh,36px)] block h-[var(--about-slot-h)]
+                             w-[var(--about-slot-w)] lg:hidden"
+                />
+
                 <h2
                   data-about="heading"
-                  className="mx-auto m-0 max-w-[17ch] font-heading
+                  className="mx-auto m-0 max-w-[min(100%,var(--about-heading-w))] font-heading
                              text-[length:var(--about-heading-size)] font-bold
                              leading-[1.02] tracking-[-0.03em] text-primary"
                 >
-                  {words(HEADING, 'hword', 'inline-block')}
+                  <span className="block">
+                    {words(HEADING_LEAD, 'hword', 'inline-block')}{' '}
+                    <span
+                      data-about="slot"
+                      data-slot="inline"
+                      aria-hidden="true"
+                      className="hidden h-[var(--about-slot-h)] w-[var(--about-slot-w)]
+                                 lg:mx-[var(--about-slot-gap)] lg:inline-block lg:align-middle"
+                    />{' '}
+                    {words(HEADING_TAIL, 'hword', 'inline-block')}
+                  </span>
+                  <span className="block">{words(HEADING_REST, 'hword', 'inline-block')}</span>
                 </h2>
 
                 <p
+                  data-about="body"
                   className="mx-auto m-0 mt-[clamp(20px,3.6svh,48px)] max-w-[32ch]
                              font-body text-[length:var(--about-body-size)] font-normal
                              leading-[1.32] tracking-[-0.02em] text-primary"
@@ -393,9 +387,7 @@ export default function About() {
                       {token.card ? (
                         <InlineCard {...token.card} />
                       ) : (
-                        <span data-about="bword" className="relative z-[1] inline-block">
-                          {token.word}
-                        </span>
+                        <span className="relative z-[1] inline-block">{token.word}</span>
                       )}
                     </Fragment>
                   ))}

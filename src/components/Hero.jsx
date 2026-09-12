@@ -66,76 +66,6 @@ function HeroCard({ className = '', children, ...rest }) {
   )
 }
 
-const ICON_PROPS = {
-  viewBox: '0 0 24 24',
-  fill: 'currentColor',
-  'aria-hidden': 'true',
-  className: 'h-[var(--hero-card-icon)] w-[var(--hero-card-icon)] shrink-0 text-primary',
-}
-
-const TRAITS = [
-  {
-    label: 'Creative',
-    icon: (
-      <svg {...ICON_PROPS}>
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M9.2 6.6h5.6a6.4 6.4 0 0 1 6.35 5.55l.6 4.5a2.85 2.85 0 0 1-5.2 1.95l-1.6-2.3H9.05l-1.6 2.3a2.85 2.85 0 0 1-5.2-1.95l.6-4.5A6.4 6.4 0 0 1 9.2 6.6zM7.55 9.85h1.5v1.6h1.6v1.5h-1.6v1.6h-1.5v-1.6h-1.6v-1.5h1.6zM16.2 9.95a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3zM18.6 12.15a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: 'Reliable',
-    icon: (
-      <svg {...ICON_PROPS}>
-        <path d="M7.4 3.8a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2zM16.6 3.8a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2zM12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2zM7.4 13a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2zM16.6 13a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Strategist',
-    icon: (
-      <svg {...ICON_PROPS}>
-        <path d="M2.8 7.4l3.9 3.4L12 4l5.3 6.8 3.9-3.4-1.9 11.6H4.7z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Builder',
-    icon: (
-      <svg {...ICON_PROPS} viewBox="-5.768 -3.992 29.6 29.6">
-        <path d="M17.3256 12.9481L14.4763 10.808L17.3256 8.66787C18.3103 7.92827 18.3103 6.48246 17.3256 5.74279L10.1925 0.385134C9.50883 -0.128378 8.55529 -0.128378 7.87166 0.385134L0.738579 5.74279C-0.246193 6.48246 -0.246193 7.92821 0.738579 8.66787L3.58792 10.808L0.738642 12.9481C-0.24613 13.6877 -0.24613 15.1336 0.738642 15.8732L7.87178 21.2309C8.55542 21.7444 9.50895 21.7444 10.1926 21.2309L17.3257 15.8732C18.3104 15.1336 18.3103 13.6877 17.3256 12.9481Z" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Efficient',
-    icon: (
-      <svg {...ICON_PROPS} viewBox="-3.498 -3.741 25 25">
-        <path d="M15.855 8.75897C21.1849 15.3054 15.7305 20.6123 9.00227 15.4265C2.27397 20.6123 -3.18034 15.3054 2.14955 8.75897C-3.18034 2.21252 2.27403 -3.09438 9.00227 2.09146C15.7306 -3.09438 21.1849 2.21257 15.855 8.75897Z" />
-      </svg>
-    ),
-  },
-]
-
-function TraitList() {
-  return (
-    <ul role="list" className="m-0 flex w-max list-none flex-col gap-[var(--hero-card-stack)] p-0">
-      {TRAITS.map((trait) => (
-        <li
-          key={trait.label}
-          className={`flex items-center gap-[var(--hero-card-icon-gap)] text-left leading-[1.15] ${HERO_CARD_TEXT}`}
-        >
-          {trait.icon}
-          {trait.label}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 function MenuCardList({ onNavigate }) {
   return (
     <nav aria-label="Sections">
@@ -186,11 +116,11 @@ const HERO_CTA =
   'leading-none text-primary no-underline ' +
   'focus-visible:bg-primary focus-visible:text-white'
 
-export function HeroCta({ href, children, ...rest }) {
+export function HeroCta({ href, children, className = '', ...rest }) {
   const Tag = href ? 'a' : 'button'
   return (
     <Tag
-      className={HERO_CTA}
+      className={`${HERO_CTA} ${className}`}
       href={href}
       type={href ? undefined : 'button'}
       data-hover-fill
@@ -356,7 +286,7 @@ function TechGroup({ items }) {
   )
 }
 
-export default function Hero({ portal = null }) {
+export default function Hero() {
   const titleRef = useRef(null)
   const hostRef = useRef(null)
   useHeroMetrics(titleRef, hostRef)
@@ -370,11 +300,17 @@ export default function Hero({ portal = null }) {
     <section
       ref={hostRef}
       data-hero-pane
-      className="sticky top-0 isolate h-[100lvh] w-full overflow-hidden bg-hero-bg"
+      className="pointer-events-none sticky top-0 isolate h-[100lvh] w-full overflow-hidden"
       id="home"
       aria-label="Intro"
     >
-      <div data-hero="title" className="absolute inset-x-0 top-[var(--hero-title-top)]">
+      <div
+        data-hero-frame="back"
+        className="absolute inset-0 z-0 overflow-hidden bg-hero-bg"
+        aria-hidden="true"
+      />
+
+      <div data-hero="title" className="absolute inset-x-0 z-0 top-[var(--hero-title-top)]">
         <h1
           ref={titleRef}
           data-hero="word"
@@ -384,13 +320,45 @@ export default function Hero({ portal = null }) {
                      font-bold uppercase leading-[0.88]
                      tracking-[var(--hero-title-tracking)] text-primary"
         >
-          FLEX
+          <span data-hero="wordF" className="inline-block">
+            F
+          </span>
+          <span data-hero="wordRest">LEX</span>
         </h1>
+      </div>
+
+      <div data-hero-frame="front" className="absolute inset-0 z-[1] overflow-hidden">
+        <div data-hero-canvas className="absolute inset-0">
+          <figure
+            data-hero="figure"
+            className="absolute bottom-0 left-1/2 m-0 flex -translate-x-1/2 justify-center"
+          >
+            <picture data-hero="portrait">
+              <source
+                media="(max-width: 1023px)"
+                srcSet={`${MOBILE_HERO_800} 800w, ${MOBILE_HERO_1200} 1200w`}
+                sizes="120vw"
+              />
+              <img
+                data-hero-img
+                draggable={false}
+                className="h-[var(--hero-image-height)] w-auto max-w-[var(--hero-image-max-w)]
+                           object-contain object-bottom"
+                src={HERO_IMAGE}
+                alt="Felix De Guzman"
+                fetchPriority="high"
+                decoding="async"
+              />
+            </picture>
+
+            <span data-hero="head" data-cursor="scuba" aria-hidden="true" />
+          </figure>
+        </div>
       </div>
 
       <div
         data-hero="tech"
-        className={`absolute inset-x-0 z-[5] top-[var(--hero-meta-top)]
+        className={`pointer-events-auto absolute inset-x-0 z-[5] top-[var(--hero-meta-top)]
                     bottom-[var(--hero-meta-bottom)]
                     flex flex-wrap items-center
                     justify-center ${META_GAP} gap-y-2 page-x leading-none
@@ -404,44 +372,6 @@ export default function Hero({ portal = null }) {
         <TechGroup items={TECH_LEFT} />
         <TechGroup items={TECH_RIGHT} />
       </div>
-
-      <div
-        data-hero="card-nav"
-        className="pointer-events-none absolute z-[5] hidden lg:block
-                   left-[calc(var(--hero-title-ink-left,0px)_+_var(--hero-card-nav-x))]
-                   bottom-[var(--hero-card-nav-y)]"
-      >
-        <div data-navcard-face className={`${HERO_CARD} flex items-start text-left`}>
-          <MenuCardList onNavigate={handleNavigate} />
-        </div>
-      </div>
-
-      <figure
-        data-hero="figure"
-        className="pointer-events-none absolute bottom-0 left-1/2 z-[1] m-0 flex -translate-x-1/2 justify-center"
-      >
-        <picture data-hero="portrait">
-          <source
-            media="(max-width: 1023px)"
-            srcSet={`${MOBILE_HERO_800} 800w, ${MOBILE_HERO_1200} 1200w`}
-            sizes="120vw"
-          />
-          <img
-            data-hero-img
-            draggable={false}
-            className="h-[var(--hero-image-height)] w-auto max-w-[var(--hero-image-max-w)]
-                       object-contain object-bottom"
-            src={HERO_IMAGE}
-            alt="Felix De Guzman"
-            fetchPriority="high"
-            decoding="async"
-          />
-        </picture>
-
-        <span data-hero="head" data-cursor="scuba" aria-hidden="true" />
-      </figure>
-
-      {portal}
 
       <div
         className="pointer-events-none absolute bottom-[calc(var(--hero-image-height)/2)]
@@ -474,13 +404,15 @@ export default function Hero({ portal = null }) {
         </div>
 
         <div
-          className="absolute w-max left-[var(--hero-card-list-x)] top-[var(--hero-card-list-y)]
+          data-hero="card-nav"
+          className="pointer-events-none absolute w-max
+                     left-[var(--hero-card-list-x)] top-[var(--hero-card-list-y)]
                      translate-x-[var(--hero-card-list-tx)]
                      translate-y-[var(--hero-card-list-ty)]"
         >
-          <HeroCard data-hero="card-traits" className="flex">
-            <TraitList />
-          </HeroCard>
+          <div data-navcard-face className={`${HERO_CARD} flex items-start text-left`}>
+            <MenuCardList onNavigate={handleNavigate} />
+          </div>
         </div>
       </div>
 
@@ -496,8 +428,12 @@ export default function Hero({ portal = null }) {
                      translate-x-[var(--hero-cta-x)] translate-y-[var(--hero-cta-y)]
                      gap-[clamp(10px,1vw,16px)] page-x"
         >
-          <HeroCta {...BOOKING}>Book a Meet</HeroCta>
-          <HeroCta href="#about">More About Me</HeroCta>
+          <HeroCta data-hero-cta="primary" className="z-[2]" {...BOOKING}>
+            Book a Meet
+          </HeroCta>
+          <HeroCta data-hero-cta="secondary" className="z-[1]" href="#about">
+            More About Me
+          </HeroCta>
         </div>
       </div>
 
@@ -511,12 +447,12 @@ export default function Hero({ portal = null }) {
                     lg:ml-[var(--hero-title-ink-left,auto)]
                     lg:w-[var(--hero-title-ink)]`}
       >
-        <p className={HERO_NOTE}>
+        <p data-hero-note className={HERO_NOTE}>
           The Web Dev Expert.
           <br />
           That’s Felix.
         </p>
-        <p className={HERO_NOTE}>
+        <p data-hero-note className={HERO_NOTE}>
           Custom code where it counts, a managed CMS where it saves time — designed, built and
           shipped end to end.
         </p>

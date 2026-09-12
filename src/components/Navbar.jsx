@@ -155,8 +155,7 @@ export default function Navbar() {
 
         <div className="flex shrink-0 items-center gap-2 lg:gap-0">
           <a data-nav-cta className={CTA} {...BOOKING} data-hover-fill="light">
-            <span className="lg:hidden">Book a Meet</span>
-            <span className="hidden lg:inline">Let&rsquo;s Talk</span>
+            Book a Meet
           </a>
 
           <button

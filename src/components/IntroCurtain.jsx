@@ -41,7 +41,6 @@ const SEL = {
   tech: '[data-hero="tech"]',
   headlineLines: '[data-hero="headline"] > span',
   cardStat: '[data-hero="card-stat"]',
-  cardTraits: '[data-hero="card-traits"]',
   cardNav: '[data-hero="card-nav"]',
   cta: '[data-hero="cta"]',
   notes: '[data-hero="notes"]',
@@ -50,10 +49,9 @@ const SEL = {
 
 const CAST = [
   { sel: SEL.tech, from: { y: 30 }, at: 0 },
-  { sel: SEL.cardNav, from: { y: 22 }, at: 0.06 },
   { sel: SEL.headlineLines, from: { yPercent: 40 }, at: 0.12, stagger: 0.08 },
   { sel: SEL.cardStat, from: { xPercent: -12 }, at: 0.3 },
-  { sel: SEL.cardTraits, from: { xPercent: 12 }, at: 0.38 },
+  { sel: SEL.cardNav, from: { xPercent: 12 }, at: 0.38 },
   { sel: SEL.cta, from: { y: 30 }, at: 0.5 },
   { sel: SEL.notes, from: { y: 24 }, at: 0.58 },
   { sel: SEL.nav, from: {}, at: 0.66 },

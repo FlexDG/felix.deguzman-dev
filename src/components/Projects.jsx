@@ -299,26 +299,18 @@ export default function Projects() {
           })
         }
 
-        gsap.set(head, { autoAlpha: 0, y: 26 })
-
-        gsap.fromTo(
-          head,
-          { autoAlpha: 0, y: 26 },
-          {
-            autoAlpha: 1,
-            y: 0,
-            ease: 'power2.out',
-            stagger: 0.12,
-            immediateRender: true,
-            scrollTrigger: {
-              trigger: headBox || root,
-              start: 'top bottom',
-              end: 'top 55%',
-              scrub: scrub(0.8),
-              invalidateOnRefresh: true,
-            },
+        gsap.from(head, {
+          autoAlpha: 0,
+          y: 26,
+          duration: 0.8,
+          ease: 'power2.out',
+          stagger: 0.1,
+          scrollTrigger: {
+            trigger: headBox || root,
+            start: 'top 84%',
+            toggleActions: 'play none none reverse',
           },
-        )
+        })
 
         if (self.conditions.narrow) return
 
@@ -404,6 +396,7 @@ export default function Projects() {
   return (
     <section
       ref={rootRef}
+      data-pj="root"
       aria-label="Projects"
       className="relative z-[3] mt-[var(--pj-lead-pull)] w-full bg-primary pb-[var(--pj-tail-gap)]"
     >

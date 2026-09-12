@@ -168,7 +168,7 @@
   --about-card-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
   --about-card-ease-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --me-runway: 190svh;
+  --me-runway: 70svh;
 
   --me-lead-pull: 0px;
 
@@ -188,7 +188,6 @@
   --me-copy-x: clamp(24px, 6.6vw, 250px);
   --me-copy-y: clamp(36px, 9svh, 110px);
   --me-copy-w: 21ch;
-  --me-ghost: 0.15;
 
   --me-copy-size: var(--about-body-size);
 
@@ -981,6 +980,17 @@
   left: var(--me-copy-x);
   max-width: calc(100% - 2 * var(--me-copy-x));
   pointer-events: auto;
+}
+
+@property --me-copy-rise {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+.me-copy-line {
+  transform: translateY(calc(var(--me-copy-rise) * 100%));
+  opacity: calc(1 - var(--me-copy-rise));
 }
 
 [data-me="portrait"] > * {

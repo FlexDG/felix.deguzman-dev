@@ -24,6 +24,7 @@ export default function ScrollLine() {
         const bar = root.querySelector('[data-ln="bar"]')
         const mask = root.querySelector('[data-ln="mask"]')
         const mouse = root.querySelector('[data-ln="mouse"]')
+        const coarse = window.matchMedia('(pointer: coarse)').matches
 
         gsap.fromTo(
           bar,
@@ -35,7 +36,7 @@ export default function ScrollLine() {
               trigger: mask,
               start: 'top 88%',
               end: 'top 42%',
-              scrub: true,
+              scrub: coarse ? 0.3 : true,
             },
           },
         )

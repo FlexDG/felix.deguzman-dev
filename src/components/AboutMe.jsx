@@ -1,8 +1,9 @@
 // About Me section
 
-import { Fragment, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { SplitText } from 'gsap/SplitText'
 import AboutMedia from './AboutMedia'
 import { Pill } from './Process'
 import {
@@ -15,7 +16,7 @@ import {
   WordPressMark,
 } from './AboutMarks'
 
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, SplitText)
 
 const EYEBROW = 'The person'
 
@@ -36,16 +37,12 @@ const SPIN_SECONDS = 22
 
 const RAIL_SECONDS = 16
 
-const ANGLES = ORBIT.map((_, i) => (360 / ORBIT.length) * i)
+const SCROLL_SETTLE_MS = 140
 
-function words(text) {
-  return text.split(' ').map((word, i) => (
-    <Fragment key={`w-${i}`}>
-      {i > 0 && ' '}
-      <span data-me="word">{word}</span>
-    </Fragment>
-  ))
-}
+const COPY_AT = 1
+const COPY_SECONDS = 0.9
+
+const ANGLES = ORBIT.map((_, i) => (360 / ORBIT.length) * i)
 
 export default function AboutMe() {
   const rootRef = useRef(null)
@@ -72,7 +69,7 @@ export default function AboutMe() {
         const portrait = q('[data-me="portrait"]')[0]
         const veil = q('[data-me="veil"]')[0]
         const eyebrow = q('[data-me="eyebrow"]')[0]
-        const wordEls = q('[data-me="word"]')
+        const copy = q('[data-me="copy-text"]')[0]
         const pulse = q('[data-me="pulse"]')[0]
         if (!stage || !dome || !portrait || !veil) return
 
@@ -92,7 +89,17 @@ export default function AboutMe() {
         gsap.set(veil, { yPercent: 55 })
         gsap.set(eyebrow, { autoAlpha: 0, y: 16 })
         if (pulse) gsap.set(pulse, { '--me-pulse-gate': 0 })
-        gsap.set(wordEls, { opacity: 'var(--me-ghost)' })
+
+        let split = null
+        if (copy) {
+          gsap.set(copy, { '--me-copy-rise': 1 })
+          split = SplitText.create(copy, {
+            type: 'lines',
+            mask: 'lines',
+            linesClass: 'me-copy-line',
+            autoSplit: true,
+          })
+        }
 
         const tlIn = gsap.timeline({ paused: true })
 
@@ -116,16 +123,24 @@ export default function AboutMe() {
           tlIn.to(pulse, { '--me-pulse-gate': 1, duration: 0.95, ease: 'power2.out' }, 0.85)
         }
 
+        if (copy) {
+          tlIn.to(
+            copy,
+            { '--me-copy-rise': 0, duration: COPY_SECONDS, ease: 'power3.out' },
+            COPY_AT,
+          )
+        }
+
         ScrollTrigger.create({
           trigger: stage,
           start: narrow ? 'top 57%' : 'top 35%',
           end: 'bottom top',
 
-          onEnter: () => {
+          onEnter: (self) => {
             const line = window.innerHeight * (narrow ? 0.57 : 0.35)
             if (!rechecked && stage.getBoundingClientRect().top > line + 1) {
               rechecked = true
-              requestAnimationFrame(() => ScrollTrigger.refresh())
+              requestAnimationFrame(() => self.refresh())
               return
             }
             play()
@@ -145,35 +160,9 @@ export default function AboutMe() {
           onLeaveBack: () => arm(),
         })
 
-        const WINDOW = 0.78
-        const step = WINDOW / Math.max(wordEls.length - 1, 1)
+        if (import.meta.env.DEV) window.__meIn = tlIn
 
-        const tlType = gsap.timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: {
-            trigger: stage,
-            start: 'top top',
-            end: () =>
-              `+=${Math.max(
-                1,
-                stage.offsetHeight -
-                  window.innerHeight -
-                  (parseFloat(getComputedStyle(root).getPropertyValue('--me-cover-tail')) || 0),
-              )}`,
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        })
-
-        tlType
-          .to(wordEls, { opacity: 1, duration: step * 1.35, stagger: step }, 0.06)
-
-          .set({}, {}, 1)
-
-        if (import.meta.env.DEV) {
-          window.__meIn = tlIn
-          window.__meType = tlType
-        }
+        return () => split?.revert()
       },
       root,
     )
@@ -319,11 +308,25 @@ export default function AboutMe() {
           lastY = event.clientY
         }
 
+        let lastScrollY = window.scrollY
+        let scrolling = false
+        let settle = 0
+
         const onScrolled = () => {
+          const y = window.scrollY
+          if (Math.abs(y - lastScrollY) < 1) return
+          lastScrollY = y
           moved = false
+          scrolling = true
+          clearTimeout(settle)
+          settle = setTimeout(() => {
+            scrolling = false
+          }, SCROLL_SETTLE_MS)
+          hide()
         }
 
         const openIfMoved = (event) => {
+          if (scrolling) return
           if (!coarse.matches) {
             track(event)
             if (!moved) return
@@ -396,6 +399,7 @@ export default function AboutMe() {
             n.removeEventListener('focusout', resume)
             n.removeEventListener('click', onNudgeClick)
           })
+          clearTimeout(settle)
           document.removeEventListener('pointermove', track, { capture: true })
           window.removeEventListener('scroll', onScrolled)
           document.removeEventListener('pointerdown', onOutside)
@@ -599,11 +603,12 @@ export default function AboutMe() {
                   </p>
 
                   <p
+                    data-me="copy-text"
                     className="m-0 w-[var(--me-copy-w)] max-w-full font-heading
                              text-[length:var(--me-copy-size)] font-bold
                              leading-[1.28] tracking-[-0.02em] text-primary"
                   >
-                    {words(COPY)}
+                    {COPY}
                   </p>
                 </div>
               </div>

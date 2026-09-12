@@ -189,7 +189,12 @@ function buildShrink(tl, q, pane) {
     })
     canvas.style.transform = ''
     canvas.style.transformOrigin = ''
-    if (sign) sign.style.cssText = ''
+    if (sign) {
+      sign.style.width = ''
+      sign.style.height = ''
+      sign.style.left = ''
+      sign.style.top = ''
+    }
   }
 }
 

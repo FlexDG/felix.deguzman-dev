@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { scrub } from '../hooks/useSmoothScroll'
 import { Pill } from './Process'
 import Brands from './Brands'
 import { isLowPerf } from '../lib/perf'
 
 gsap.registerPlugin(ScrollTrigger)
+
+const STACK_BEATS_PER_SECOND = 1.6
+const STACK_CATCH = 0.16
 
 const THUMBS = `${import.meta.env.BASE_URL}images/project_thumbnails/`
 const LOGOS = `${import.meta.env.BASE_URL}images/logo/`
@@ -316,29 +318,7 @@ export default function Projects() {
 
         seed()
 
-        ScrollTrigger.create({
-          trigger: stage,
-          start: 'top top',
-          end: 'bottom bottom',
-          pin: pane,
-          pinSpacing: false,
-          anticipatePin: 0,
-          invalidateOnRefresh: true,
-        })
-
-        const tl = gsap.timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: {
-            trigger: stage,
-            start: 'top 5%',
-            end: 'bottom bottom',
-            scrub: scrub(0.3),
-            invalidateOnRefresh: true,
-            onRefresh: (st) => {
-              if (!st.animation || st.animation.progress() === 0) seed()
-            },
-          },
-        })
+        const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
 
         cards.forEach((card, j) => {
           tl.fromTo(
@@ -385,7 +365,69 @@ export default function Projects() {
 
         tl.set({}, {}, 1)
 
+        const rate = STACK_BEATS_PER_SECOND * beat
+
+        let target = 0
+        let shown = 0
+        let running = false
+
+        const follow = (_time, deltaMs) => {
+          const dt = Math.min(deltaMs, 50) / 1000
+          const diff = target - shown
+
+          if (Math.abs(diff) < 0.0002) {
+            shown = target
+            tl.progress(shown)
+            running = false
+            gsap.ticker.remove(follow)
+            return
+          }
+
+          const cap = rate * dt
+          const closing = diff * (1 - Math.pow(1 - STACK_CATCH, dt * 60))
+          shown += gsap.utils.clamp(-cap, cap, closing)
+          tl.progress(shown)
+        }
+
+        const kick = () => {
+          if (running) return
+          running = true
+          gsap.ticker.add(follow)
+        }
+
+        const land = (progress) => {
+          if (running) {
+            gsap.ticker.remove(follow)
+            running = false
+          }
+          target = progress
+          shown = progress
+          tl.progress(progress)
+        }
+
+        ScrollTrigger.create({
+          trigger: stage,
+          start: 'top 5%',
+          end: 'bottom bottom',
+          invalidateOnRefresh: true,
+          onUpdate: (st) => {
+            target = st.progress
+            kick()
+          },
+          onRefresh: (st) => {
+            tl.invalidate()
+            tl.progress(0)
+            seed()
+            land(st.progress)
+          },
+        })
+
         if (import.meta.env.DEV) window.__pjTl = tl
+
+        return () => {
+          gsap.ticker.remove(follow)
+          running = false
+        }
       },
       root,
     )
@@ -438,7 +480,8 @@ export default function Projects() {
       <div data-pj="stage" className="relative h-[calc(100svh+var(--pj-runway))]">
         <div
           data-pj="pane"
-          className="flex h-[100lvh] w-full flex-col overflow-hidden px-[var(--pj-gutter)]"
+          className="sticky top-0 flex h-[100lvh] w-full flex-col overflow-hidden
+                     px-[var(--pj-gutter)]"
         >
           <div
             data-pj="deck"

@@ -1,6 +1,7 @@
 // About Me portrait and video
 
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { isLowPerf } from '../lib/perf'
 
 const AboutPortraitGL = lazy(() => import('./AboutPortraitGL'))
 
@@ -40,6 +41,7 @@ function rendersAlpha(video) {
 
 function armedFromTheStart() {
   if (typeof window === 'undefined') return false
+  if (isLowPerf()) return false
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false
   return typeof IntersectionObserver === 'undefined'
 }
@@ -60,6 +62,7 @@ export default function AboutMedia() {
   }, [])
 
   useEffect(() => {
+    if (isLowPerf()) return
     const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
     if (calm.matches) return
 

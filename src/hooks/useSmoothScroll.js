@@ -5,6 +5,7 @@ import Lenis from 'lenis'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { isLowPerf } from '../lib/perf'
+import { runNavCurtain } from '../lib/navCurtain'
 gsap.registerPlugin(ScrollTrigger)
 
 ScrollTrigger.config({ ignoreMobileResize: true })
@@ -17,16 +18,37 @@ export function getLenis() {
 
 const EASE = (t) => 1 - Math.pow(1 - t, 3)
 
-const JUMP_MIN = 1.4
-const JUMP_MAX = 3.4
-const JUMP_PX_PER_SECOND = 1800
-const JUMP_EASE = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const SAME_PLACE = 4
 
-const TOUCH_SCRUB = 0.4
+const TOUCH_ONLY = '(hover: none) and (pointer: coarse)'
 
 export function scrub(seconds) {
   const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches
-  return coarse ? Math.max(0.2, seconds * TOUCH_SCRUB) : seconds
+  return coarse ? true : seconds
+}
+
+function holdTouch(lenis) {
+  const block = (event) => {
+    if (event.cancelable) event.preventDefault()
+  }
+  const letGo = () => {
+    window.removeEventListener('touchmove', block)
+    window.removeEventListener('wheel', block)
+  }
+  const stop = lenis.stop.bind(lenis)
+  const start = lenis.start.bind(lenis)
+
+  lenis.stop = () => {
+    window.addEventListener('touchmove', block, { passive: false })
+    window.addEventListener('wheel', block, { passive: false })
+    stop()
+  }
+  lenis.start = () => {
+    letGo()
+    start()
+  }
+
+  return letGo
 }
 
 function stickyAnchor(el) {
@@ -38,19 +60,39 @@ export function scrollToSection(href, { reduceMotion = false } = {}) {
   if (!found) return false
 
   const target = stickyAnchor(found)
-
   const lenis = getLenis()
 
-  if (!lenis || reduceMotion) {
-    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' })
+  const land = () => {
+    if (lenis) lenis.scrollTo(target, { offset: 0, immediate: true, force: true })
+    else target.scrollIntoView({ behavior: 'auto' })
+    ScrollTrigger.update()
+    window.dispatchEvent(new Event('nav:jump'))
+  }
+
+  if (reduceMotion) {
+    land()
     return true
   }
 
-  const from = window.scrollY
-  const to = target.getBoundingClientRect().top + from
-  const seconds = Math.min(JUMP_MAX, Math.max(JUMP_MIN, Math.abs(to - from) / JUMP_PX_PER_SECOND))
+  const reach = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+  const to = Math.min(Math.max(0, target.getBoundingClientRect().top + window.scrollY), reach)
+  if (Math.abs(to - window.scrollY) < SAME_PLACE) return true
 
-  lenis.scrollTo(target, { offset: 0, duration: seconds, easing: JUMP_EASE })
+  const root = document.documentElement
+
+  const started = runNavCurtain({
+    onCovered: land,
+    onDone: () => {
+      root.removeAttribute('data-scroll-locked')
+      lenis?.start()
+    },
+  })
+
+  if (started) {
+    root.setAttribute('data-scroll-locked', '')
+    lenis?.stop()
+  }
+
   return true
 }
 
@@ -58,14 +100,18 @@ export function useSmoothScroll() {
   useEffect(() => {
     let lenis
     let raf
+    let letGo = null
     try {
+      const touchOnly = matchMedia(TOUCH_ONLY).matches
       lenis = new Lenis({
         duration: isLowPerf() ? 1.05 : 1.45,
         easing: EASE,
         wheelMultiplier: 0.8,
         smoothWheel: true,
         syncTouch: false,
+        ...(touchOnly ? { eventsTarget: document.createElement('div') } : null),
       })
+      if (touchOnly) letGo = holdTouch(lenis)
       lenisInstance = lenis
       if (import.meta.env.DEV) window.__lenis = lenis
       lenis.on('scroll', ScrollTrigger.update)
@@ -82,6 +128,7 @@ export function useSmoothScroll() {
     }
     return () => {
       gsap.ticker.remove(raf)
+      letGo?.()
       lenis.destroy()
       lenisInstance = null
     }

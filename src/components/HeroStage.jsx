@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SplitText } from 'gsap/SplitText'
 import Hero from './Hero'
+import { scrub } from '../hooks/useSmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
@@ -35,7 +36,32 @@ const SIGN_INK_LEFT = 0.354
 const SIGN_INK_RIGHT = 0.08
 const SIGN_INK_TOP = 0.08
 
-const LOGO_F = { left: 0.095, top: 0.1, right: 0.5, bottom: 0.9095 }
+const GLYPH_F = {
+  left: 0.0126,
+  top: 0.0092,
+  right: 0.9832,
+  bottom: 0.9787,
+  stem: 0.3132,
+  arm: 0.1862,
+  barTop: 0.4136,
+  barBottom: 0.577,
+  barRight: 0.8931,
+  radius: 0.0368,
+}
+
+const LOGO_F = {
+  left: 0.095,
+  top: 0.1005,
+  right: 0.5005,
+  bottom: 0.909,
+  stem: 0.2685,
+  arm: 0.273,
+  barTop: 0.3315,
+  barBottom: 0.5045,
+  barRight: 0.5005,
+}
+
+const LOGO_RING = { x: 0.5, y: 0.5042, mid: 0.3187 }
 
 const AT = {
   notes: [0.05, 0.1],
@@ -44,10 +70,11 @@ const AT = {
   stat: [0.05, 0.27],
   statFade: [0.17, 0.27],
   rest: [0.0, 0.22],
-  flight: [0.0, 0.44],
+  flight: [0.0, 0.36],
+  morph: [0.14, 0.36],
+  sweep: [0.4, 0.58],
   ctaMerge: [0.05, 0.2],
   ctaFlight: [0.2, 0.44],
-  handoff: 0.4,
 }
 
 let inkCtx = null
@@ -342,6 +369,63 @@ function buildCopy(tl, q, splits, wide) {
   }
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const F_X = ['left', 'right', 'stem', 'barRight']
+const F_Y = ['top', 'bottom', 'arm', 'barTop', 'barBottom']
+const KAPPA = 0.5523
+
+function fShape(spec, box) {
+  const shape = {}
+  F_X.forEach((key) => {
+    shape[key] = box.left + spec[key] * box.width
+  })
+  F_Y.forEach((key) => {
+    shape[key] = box.top + spec[key] * box.height
+  })
+  return shape
+}
+
+function fPath(f, radius) {
+  const pts = [
+    [f.left, f.top],
+    [f.right, f.top],
+    [f.right, f.arm],
+    [f.stem, f.arm],
+    [f.stem, f.barTop],
+    [f.barRight, f.barTop],
+    [f.barRight, f.barBottom],
+    [f.stem, f.barBottom],
+    [f.stem, f.bottom],
+    [f.left, f.bottom],
+  ]
+  const n = pts.length
+  const at = (x, y) => `${x.toFixed(2)} ${y.toFixed(2)}`
+  let d = ''
+  for (let i = 0; i <= n; i += 1) {
+    const [px, py] = pts[(i + n - 1) % n]
+    const [vx, vy] = pts[i % n]
+    const [nx, ny] = pts[(i + 1) % n]
+    const inLen = Math.hypot(vx - px, vy - py)
+    const outLen = Math.hypot(nx - vx, ny - vy)
+    const r = Math.min(radius, inLen / 2, outLen / 2)
+    const ix = inLen ? (vx - px) / inLen : 0
+    const iy = inLen ? (vy - py) / inLen : 0
+    const ox = outLen ? (nx - vx) / outLen : 0
+    const oy = outLen ? (ny - vy) / outLen : 0
+    const ex = vx - ix * r
+    const ey = vy - iy * r
+    const xx = vx + ox * r
+    const xy = vy + oy * r
+    if (i === 0) {
+      d = `M${at(xx, xy)}`
+    } else {
+      const k = KAPPA * r
+      d += `L${at(ex, ey)}C${at(ex + ix * k, ey + iy * k)} ${at(xx - ox * k, xy - oy * k)} ${at(xx, xy)}`
+    }
+  }
+  return `${d}Z`
+}
+
 function buildFlight(tl, q, lifts) {
   const wordF = q(SEL.wordF)[0]
   const logo = document.querySelector(SEL.navLogo)
@@ -351,36 +435,117 @@ function buildFlight(tl, q, lifts) {
   const logoBox = logo.getBoundingClientRect()
   if (!ink || !ink.width || !logoBox.width) return
 
-  const box = wordF.getBoundingClientRect()
-  const target = {
-    left: logoBox.left + LOGO_F.left * logoBox.width,
-    top: logoBox.top + LOGO_F.top * logoBox.height,
-    width: (LOGO_F.right - LOGO_F.left) * logoBox.width,
-    height: (LOGO_F.bottom - LOGO_F.top) * logoBox.height,
-  }
-
-  gsap.set(wordF, {
-    transformOrigin: `${ink.left - box.left}px ${ink.top - box.top}px`,
+  const glyph = fShape(GLYPH_F, ink)
+  const mark = fShape(LOGO_F, logoBox)
+  const frame = (f) => ({
+    left: f.left,
+    top: f.top,
+    width: f.right - f.left,
+    height: f.bottom - f.top,
   })
+  const from = frame(glyph)
+  const to = frame(mark)
+  const shareX = F_X.map((key) => [
+    key,
+    (glyph[key] - from.left) / from.width,
+    (mark[key] - to.left) / to.width,
+  ])
+  const shareY = F_Y.map((key) => [
+    key,
+    (glyph[key] - from.top) / from.height,
+    (mark[key] - to.top) / to.height,
+  ])
+  const round = (GLYPH_F.radius * ink.height) / from.height
+  const ringY = logoBox.top + (LOGO_RING.y + 0.01) * logoBox.height
+  const ringMid = LOGO_RING.mid * logoBox.width
+  const ringAt = `${LOGO_RING.x * 100}% ${(LOGO_RING.y * 100).toFixed(2)}%`
+
+  const rig = document.createElement('div')
+  rig.setAttribute('aria-hidden', 'true')
+  rig.style.cssText = 'position:absolute;inset:0;'
+  const svg = document.createElementNS(SVG_NS, 'svg')
+  svg.setAttribute('width', '100%')
+  svg.setAttribute('height', '100%')
+  svg.style.cssText = 'position:absolute;inset:0;overflow:visible;'
+  const path = document.createElementNS(SVG_NS, 'path')
+  path.setAttribute('fill', getComputedStyle(wordF).color)
+  svg.appendChild(path)
+  const bowl = document.createElement('img')
+  bowl.alt = ''
+  bowl.src = logo.currentSrc || logo.src
+  bowl.style.cssText =
+    `position:absolute;left:${logoBox.left}px;top:${logoBox.top}px;` +
+    `width:${logoBox.width}px;height:${logoBox.height}px;max-width:none;visibility:hidden;`
+  rig.append(svg, bowl)
+
+  const state = { fly: 0, morph: 0, sweep: 0 }
+  const lerp = (a, b, t) => a + (b - a) * t
+  const draw = () => {
+    const { fly, morph, sweep } = state
+    const left = lerp(from.left, to.left, fly)
+    const top = lerp(from.top, to.top, fly)
+    const width = lerp(from.width, to.width, fly)
+    const height = lerp(from.height, to.height, fly)
+    const f = {}
+    shareX.forEach(([key, a, b]) => {
+      f[key] = left + lerp(a, b, morph) * width
+    })
+    shareY.forEach(([key, a, b]) => {
+      f[key] = top + lerp(a, b, morph) * height
+    })
+    const angle = sweep * 270
+    if (sweep > 0) f.bottom = Math.max(ringY, f.bottom - (ringMid * angle * Math.PI) / 180)
+    path.setAttribute('d', fPath(f, round * height * (1 - morph)))
+
+    const mask = `conic-gradient(from 273deg at ${ringAt}, transparent ${356 - angle}deg, #000 ${357 - angle}deg)`
+    bowl.style.visibility = sweep > 0 ? 'visible' : 'hidden'
+    bowl.style.maskImage = mask
+    bowl.style.webkitMaskImage = mask
+  }
+  draw()
+
   gsap.set(logo, { autoAlpha: 0 })
-  lifts.push(() => liftInto(wordF, box))
+  lifts.push(() => {
+    flightLayer().appendChild(rig)
+    wordF.style.visibility = 'hidden'
+    return () => {
+      rig.remove()
+      wordF.style.visibility = ''
+    }
+  })
 
   tl.to(
-    wordF,
+    state,
     {
-      x: target.left - ink.left,
-      y: target.top - ink.top,
-      scaleX: target.width / ink.width,
-      scaleY: target.height / ink.height,
-      duration: AT.handoff - AT.flight[0],
+      fly: 1,
+      duration: AT.flight[1] - AT.flight[0],
       ease: 'power1.inOut',
+      onUpdate: draw,
     },
     AT.flight[0],
   )
-    // The F has landed and sits still; the mark fades in over it so the D reads
-    // as arriving, then the F is cut once the mark is opaque enough to hide it.
-    .to(logo, { autoAlpha: 1, duration: AT.flight[1] - AT.handoff, ease: 'power1.out' }, AT.handoff)
-    .set(wordF, { autoAlpha: 0 }, AT.flight[1])
+    .to(
+      state,
+      {
+        morph: 1,
+        duration: AT.morph[1] - AT.morph[0],
+        ease: 'power2.inOut',
+        onUpdate: draw,
+      },
+      AT.morph[0],
+    )
+    .to(
+      state,
+      {
+        sweep: 1,
+        duration: AT.sweep[1] - AT.sweep[0],
+        ease: 'power1.inOut',
+        onUpdate: draw,
+      },
+      AT.sweep[0],
+    )
+    .set(logo, { autoAlpha: 1 }, AT.sweep[1])
+    .set(rig, { autoAlpha: 0 }, AT.sweep[1])
 }
 
 function buildCta(tl, q, lifts) {
@@ -537,7 +702,7 @@ export default function HeroStage() {
             trigger: stage,
             start: 'top top',
             end: () => `+=${pane.offsetHeight}`,
-            scrub: wide ? true : 0.4,
+            scrub: wide ? true : scrub(0.4),
             animation: tl,
             onToggle: (self) => {
               pane.toggleAttribute('data-shrinking', self.isActive)

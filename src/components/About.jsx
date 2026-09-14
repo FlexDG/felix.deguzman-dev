@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Pill } from './Process'
+import { scrub } from '../hooks/useSmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -177,29 +178,12 @@ export default function About() {
 
         const q = gsap.utils.selector(root)
         const stage = q('[data-about="stage"]')[0]
-        const rig = q('[data-about="rig"]')[0]
         const group = q('[data-about="group"]')[0]
         const heading = q('[data-about="heading"]')[0]
         const hWords = q('[data-about="hword"]')
         const eyebrow = q('[data-about="eyebrow"]')
         const body = q('[data-about="body"]')
-        if (!stage || !rig || !group || !heading) return
-
-        gsap.fromTo(
-          rig,
-          { y: () => -window.innerHeight },
-          {
-            y: 0,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: stage,
-              start: 'top bottom',
-              end: 'top top',
-              scrub: narrow ? 0.4 : true,
-              invalidateOnRefresh: true,
-            },
-          },
-        )
+        if (!stage || !group || !heading) return
 
         gsap.set(hWords, { autoAlpha: 0, yPercent: 60 })
         gsap.set(eyebrow, { opacity: 0 })
@@ -219,7 +203,7 @@ export default function About() {
             trigger: stage,
             start: 'top top',
             end: 'bottom bottom',
-            scrub: narrow ? 0.4 : true,
+            scrub: narrow ? scrub(0.4) : true,
             invalidateOnRefresh: true,
           },
         })
@@ -348,8 +332,11 @@ export default function About() {
       className="relative z-[1] mt-[calc(-1*var(--hero-about-pull))] w-full bg-white"
     >
       <div data-about="stage" className="relative h-[calc(100lvh+var(--about-runway))]">
-        <div className="sticky top-0 h-[100lvh] w-full">
-          <div data-about="rig" className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute inset-x-0 bottom-0
+                     top-[calc(var(--about-runway)_-_var(--hero-about-pull))]"
+        >
+          <div data-about="rig" className="sticky top-0 h-[100lvh] w-full overflow-hidden">
             <div
               className="absolute inset-0 grid place-items-center page-x
                          pt-[var(--about-rig-top)]"

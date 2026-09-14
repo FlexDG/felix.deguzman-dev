@@ -405,7 +405,7 @@ export default function Projects() {
           tl.progress(progress)
         }
 
-        ScrollTrigger.create({
+        const driver = ScrollTrigger.create({
           trigger: stage,
           start: 'top 5%',
           end: 'bottom bottom',
@@ -422,9 +422,13 @@ export default function Projects() {
           },
         })
 
+        const onJump = () => land(driver.progress)
+        window.addEventListener('nav:jump', onJump)
+
         if (import.meta.env.DEV) window.__pjTl = tl
 
         return () => {
+          window.removeEventListener('nav:jump', onJump)
           gsap.ticker.remove(follow)
           running = false
         }

@@ -451,7 +451,12 @@ export default function Hero() {
           <HeroCta data-hero-cta="primary" className="z-[2]" {...BOOKING}>
             Book a Meet
           </HeroCta>
-          <HeroCta data-hero-cta="secondary" className="z-[1]" href="#about">
+          <HeroCta
+            data-hero-cta="secondary"
+            className="z-[1]"
+            href="#about"
+            onClick={(e) => handleNavigate(e, '#about')}
+          >
             More About Me
           </HeroCta>
         </div>

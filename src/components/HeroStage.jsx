@@ -36,6 +36,8 @@ const SIGN_INK_LEFT = 0.354
 const SIGN_INK_RIGHT = 0.08
 const SIGN_INK_TOP = 0.08
 
+const BAR_SETTLE_MS = 200
+
 const GLYPH_F = {
   left: 0.0126,
   top: 0.0092,
@@ -739,6 +741,7 @@ export default function HeroStage() {
         // A phone's collapsing URL bar is not that: rebuilding mid-scrub reverts
         // the timeline for a frame, which reads as the hero flashing and jumping.
         let queued = 0
+        let settling = 0
         let seenWidth = window.innerWidth
         const watch = new ResizeObserver(() => {
           if (!ready || disposed) return
@@ -746,7 +749,9 @@ export default function HeroStage() {
           seenWidth = window.innerWidth
           if (barOnly && layoutKey(pane) === builtKey) return
           cancelAnimationFrame(queued)
-          queued = requestAnimationFrame(refresh)
+          clearTimeout(settling)
+          if (barOnly) settling = setTimeout(refresh, BAR_SETTLE_MS)
+          else queued = requestAnimationFrame(refresh)
         })
         const rig = document.querySelector(SEL.rig)
         document.querySelectorAll(SEL.slot).forEach((el) => watch.observe(el))
@@ -774,6 +779,7 @@ export default function HeroStage() {
           disposed = true
           cancelAnimationFrame(raf)
           cancelAnimationFrame(queued)
+          clearTimeout(settling)
           watch.disconnect()
           img?.removeEventListener('load', refresh)
           window.removeEventListener('hero:intro-done', onIntroDone)

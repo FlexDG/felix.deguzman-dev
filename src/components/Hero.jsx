@@ -424,14 +424,16 @@ export default function Hero() {
         </div>
 
         <div
-          data-hero="card-nav"
+          data-hero-slot="card-nav"
           className="pointer-events-none absolute w-max
                      left-[var(--hero-card-list-x)] top-[var(--hero-card-list-y)]
                      translate-x-[var(--hero-card-list-tx)]
                      translate-y-[var(--hero-card-list-ty)]"
         >
-          <div data-navcard-face className={`${HERO_CARD} flex items-start text-left`}>
-            <MenuCardList onNavigate={handleNavigate} />
+          <div data-hero="card-nav">
+            <div data-navcard-face className={`${HERO_CARD} flex items-start text-left`}>
+              <MenuCardList onNavigate={handleNavigate} />
+            </div>
           </div>
         </div>
       </div>

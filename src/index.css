@@ -397,7 +397,7 @@
     --hero-card-stat-x: calc(50% - 1.21 * var(--text-display) - var(--hero-headline-x));
   }
 
-  [data-hero="card-nav"] {
+  [data-hero-slot="card-nav"] {
     --hero-card-list-x: calc(50% + 1.21 * var(--text-display) - var(--hero-headline-x));
   }
 }
@@ -544,6 +544,28 @@
 @media (min-width: 1024px) and (max-height: 620px) {
   :root {
     --hero-card-stat-y: min(2.5em, 18.5svh);
+  }
+}
+
+@media (min-width: 1921px) {
+  :root {
+    --me-dome-size: 96vw;
+    --me-dome-drop: max(0px, 48vw - 95svh);
+    --me-media-left: calc(
+      var(--me-dome-x) + var(--me-media-anchor) * var(--me-dome-size) - var(--me-media-behind) *
+        var(--me-media-w)
+    );
+    --me-copy-w: min(29ch, max(21ch, 34vw));
+  }
+
+  [data-about="body"] {
+    max-width: min(44ch, max(32ch, 46.4vw));
+  }
+
+  main {
+    --max-content-width: min(2240px, calc(1600px + (100vw - 1920px) * 0.625));
+    --pj-max-w: min(2400px, calc(1800px + (100vw - 1920px) * 0.6));
+    --sv-row-w: min(100%, 88vw, calc(1440px + (100vw - 1920px) * 0.625));
   }
 }
 

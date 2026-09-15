@@ -15,6 +15,8 @@ const EASE = CustomEase.create('introSheet', 'M0,0 C0.75,0 0.25,1 1,1')
 
 const SETTLE = 'power2.out'
 
+const FLOOR_SLACK = 3
+
 const T = {
   move: 0.8,
   beat: 1,
@@ -130,9 +132,10 @@ export default function IntroCurtain() {
     const relock = requestAnimationFrame(lock)
 
     let killed = false
+    let finish = unlock
 
-    const floor = setTimeout(() => {
-      if (!killed) unlock()
+    let floor = setTimeout(() => {
+      if (!killed) finish()
     }, 9000)
 
     let ctx
@@ -216,20 +219,28 @@ export default function IntroCurtain() {
           })
         }
 
-        const tl = gsap.timeline({
-          paused: true,
-          onComplete: () => {
-            setDone(true)
-            requestAnimationFrame(() => {
-              ctx.revert()
-              window.dispatchEvent(new Event('resize'))
-              ScrollTrigger.refresh()
-              clearTimeout(floor)
-              unlock()
-              window.dispatchEvent(new Event('hero:intro-done'))
-            })
-          },
-        })
+        let finished = false
+        const complete = () => {
+          if (finished || killed) return
+          finished = true
+          clearTimeout(floor)
+          setDone(true)
+          requestAnimationFrame(() => {
+            ctx.revert()
+            window.dispatchEvent(new Event('resize'))
+            ScrollTrigger.refresh()
+            unlock()
+            openHead()
+            window.dispatchEvent(new Event('hero:intro-done'))
+          })
+        }
+
+        const tl = gsap.timeline({ paused: true, onComplete: complete })
+
+        finish = () => {
+          tl.progress(1, true)
+          complete()
+        }
 
         tl.to(text, { yPercent: 0, duration: T.move, ease: EASE }, AT.rise)
 
@@ -294,10 +305,17 @@ export default function IntroCurtain() {
           Promise.all([document.fonts?.ready ?? Promise.resolve(), heroImageReady()]),
           wait(4000),
         ]).then(() => {
-          if (killed) return
+          if (killed || finished) return
           lock()
           groundLine()
           tl.play()
+          clearTimeout(floor)
+          floor = setTimeout(
+            () => {
+              if (!killed) finish()
+            },
+            (tl.duration() + FLOOR_SLACK) * 1000,
+          )
         })
 
         document.fonts?.ready.then(() => {

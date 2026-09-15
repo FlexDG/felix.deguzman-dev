@@ -44,8 +44,31 @@ function siteMeta() {
   }
 }
 
+const LOCKED_UNITS = { svh: '--svh', lvh: '--lvh', vh: '--lvh' }
+
+function lockViewportUnits() {
+  return {
+    postcssPlugin: 'lock-viewport-units',
+    OnceExit(root) {
+      root.walkDecls((decl) => {
+        if (!/\d(svh|lvh|vh)\b/.test(decl.value)) return
+        decl.value = decl.value.replace(
+          /(?<![\w.-])(-?\d*\.?\d+)(svh|lvh|vh)\b/g,
+          (_, amount, unit) => `calc(${amount} * var(${LOCKED_UNITS[unit]}, 1${unit}))`,
+        )
+      })
+    },
+  }
+}
+lockViewportUnits.postcss = true
+
 export default defineConfig({
   plugins: [react(), tailwindcss(), siteMeta()],
+  css: {
+    postcss: {
+      plugins: [lockViewportUnits()],
+    },
+  },
   // GitHub Pages serves this from a subfolder; Vercel serves it from the domain root.
   base: process.env.VERCEL ? '/' : '/felix.deguzman-dev/',
 })

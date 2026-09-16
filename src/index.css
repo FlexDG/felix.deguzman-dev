@@ -533,11 +533,11 @@
 
 @media (min-width: 1024px) and (max-height: 900px) {
   [data-about="stage"] {
-    --about-body-size: calc(clamp(1.5rem, min(4.4vw, 8svh), 3.5rem) - 12px);
+    --about-body-size: calc(clamp(1.5rem, min(4.4vw, 8svh), 3.5rem) - 18px);
   }
 
   [data-about="group"] {
-    margin-top: 16px;
+    margin-top: 72px;
   }
 }
 

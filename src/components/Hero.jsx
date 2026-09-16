@@ -270,7 +270,7 @@ function TechGroup({ items }) {
   return (
     <ul
       role="list"
-      className={`m-0 flex shrink-0 list-none items-center p-0 ${META_GAP}
+      className={`pointer-events-auto m-0 flex shrink-0 list-none items-center p-0 ${META_GAP}
                   max-lg:flex-col max-lg:items-start max-lg:gap-y-[var(--tech-rail-gap)]`}
     >
       {items.map((item, i) => (
@@ -378,7 +378,7 @@ export default function Hero() {
 
       <div
         data-hero="tech"
-        className={`pointer-events-auto absolute inset-x-0 z-[5] top-[var(--hero-meta-top)]
+        className={`pointer-events-none absolute inset-x-0 z-[5] top-[var(--hero-meta-top)]
                     bottom-[var(--hero-meta-bottom)]
                     flex flex-wrap items-center
                     justify-center ${META_GAP} gap-y-2 page-x leading-none

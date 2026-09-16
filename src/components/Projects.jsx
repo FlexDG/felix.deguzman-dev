@@ -6,11 +6,24 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Pill } from './Process'
 import Brands from './Brands'
 import { isLowPerf } from '../lib/perf'
+import { getLenis } from '../hooks/useSmoothScroll'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const STACK_BEATS_PER_SECOND = 1.6
-const STACK_CATCH = 0.16
+const STEP_SECONDS = 0.6
+const STEP_EASE = 'power3.out'
+const STEP_TAIL = 60
+const CATCH_SECONDS = 0.24
+
+const BURST_END = 120
+const BURST_LIVE = 0.45
+const RE_ARM_PX = 320
+const WHEEL_DEAD = 1.2
+const SWIPE_MIN = 28
+const SETTLE_MS = 110
+
+const FORWARD_KEYS = new Set(['ArrowDown', 'PageDown', ' ', 'Spacebar'])
+const BACK_KEYS = new Set(['ArrowUp', 'PageUp'])
 
 const THUMBS = `${import.meta.env.BASE_URL}images/project_thumbnails/`
 const LOGOS = `${import.meta.env.BASE_URL}images/logo/`
@@ -269,8 +282,6 @@ export default function Projects() {
         const cards = q('[data-pj="card"]')
         if (!stage || !pane || !deck || !stack || !cards.length) return
 
-        const raw = self.conditions.narrow || ScrollTrigger.isTouch === 1
-
         const peek = parseFloat(getComputedStyle(root).getPropertyValue('--pj-peek')) || 5
 
         const rawBlur = getComputedStyle(root).getPropertyValue('--pj-blur').trim() || '3px'
@@ -285,9 +296,7 @@ export default function Projects() {
         const below = () => 100 + floorGap()
 
         const beat = 1 / cards.length
-        const RISE = raw ? 0.8 : 0.62
-
-        const EASE_IN = raw ? 'power1.out' : 'power2.out'
+        const steps = cards.length - 1
 
         const DIM = 0.45
 
@@ -299,6 +308,7 @@ export default function Projects() {
             visibility: 'visible',
             willChange: 'transform',
           })
+          gsap.set(cards.slice(2), { visibility: 'hidden', willChange: 'auto' })
         }
 
         gsap.from(head, {
@@ -324,13 +334,7 @@ export default function Projects() {
           tl.fromTo(
             card,
             { yPercent: () => below(), opacity: DIM },
-            {
-              yPercent: 0,
-              opacity: 1,
-              duration: beat * RISE,
-              ease: EASE_IN,
-              immediateRender: false,
-            },
+            { yPercent: 0, opacity: 1, duration: beat, immediateRender: false },
             j * beat,
           )
 
@@ -338,14 +342,8 @@ export default function Projects() {
 
           tl.fromTo(
             card,
-            blur ? { yPercent: 0, filter: 'blur(0px)' } : { yPercent: 0 },
-            {
-              yPercent: -peek,
-              ...(blur ? { filter: `blur(${blur})` } : null),
-              duration: beat * RISE,
-              ease: EASE_IN,
-              immediateRender: false,
-            },
+            { yPercent: 0 },
+            { yPercent: -peek, duration: beat, immediateRender: false },
             (j + 1) * beat,
           )
         })
@@ -354,83 +352,299 @@ export default function Projects() {
           cards.forEach((card, j) => {
             tl.set(card, { filter: 'none' }, j * beat)
             if (j + 1 >= cards.length) return
-            tl.set(card, { filter: 'blur(0px)' }, (j + 1) * beat - 0.001)
+            tl.set(card, { filter: `blur(${blur})` }, (j + 1) * beat + beat * 0.06)
           })
         }
 
         cards.forEach((card, j) => {
-          if (j + 2 >= cards.length) return
-          tl.set(card, { visibility: 'hidden', willChange: 'auto' }, (j + 2) * beat + beat * RISE)
+          if (j >= 2) tl.set(card, { visibility: 'visible', willChange: 'transform' }, (j - 1) * beat)
+          if (j + 2 < cards.length) {
+            tl.set(card, { visibility: 'hidden', willChange: 'auto' }, (j + 3) * beat)
+          }
         })
 
         tl.set({}, {}, 1)
 
-        const rate = STACK_BEATS_PER_SECOND * beat
+        let intro = null
+        let driver = null
 
-        let target = 0
-        let shown = 0
-        let running = false
+        let index = 0
+        let engaged = false
+        let escape = 0
+        let lockUntil = 0
+        let peakAbs = 0
+        let sinceStep = 0
+        let carried = false
+        let lastAt = -1e9
+        let lastDir = 0
 
-        const follow = (_time, deltaMs) => {
-          const dt = Math.min(deltaMs, 50) / 1000
-          const diff = target - shown
+        const proxy = { y: 0 }
 
-          if (Math.abs(diff) < 0.0002) {
-            shown = target
-            tl.progress(shown)
-            running = false
-            gsap.ticker.remove(follow)
+        const paint = () => {
+          if (!intro || !driver) return
+          const dp = driver.progress
+          tl.progress(dp > 0 ? beat + dp * (1 - beat) : intro.progress * beat)
+        }
+
+        const restY = (k) => {
+          const span = Math.max(1, driver.end - driver.start)
+          const inside = gsap.utils.clamp(driver.start + 1, driver.end - 1)
+          return inside(driver.start + (k / steps) * span)
+        }
+
+        const push = () => {
+          window.scrollTo(0, proxy.y)
+          ScrollTrigger.update()
+        }
+
+        const glide = (y, seconds) => {
+          gsap.killTweensOf(proxy)
+          proxy.y = window.scrollY
+          if (!seconds || Math.abs(y - proxy.y) < 0.5) {
+            proxy.y = y
+            push()
+            return
+          }
+          gsap.to(proxy, { y, duration: seconds, ease: STEP_EASE, onUpdate: push })
+        }
+
+        const hold = () => getLenis()?.stop()
+
+        const at = (progress) => gsap.utils.clamp(0, steps, Math.round(progress * steps))
+
+        let anchorY = 0
+        let touching = false
+
+        let settleId = 0
+        const settle = () => {
+          clearTimeout(settleId)
+          settleId = setTimeout(() => {
+            if (!engaged || touching || gsap.isTweening(proxy)) return
+            index = at(driver.progress)
+            const y = restY(index)
+            if (Math.abs(window.scrollY - y) > 2) glide(y, CATCH_SECONDS)
+          }, SETTLE_MS)
+        }
+
+        const engage = () => {
+          if (engaged) return
+          engaged = true
+          escape = 0
+          lockUntil = 0
+          pane.style.touchAction = 'none'
+          hold()
+          index = at(driver.progress)
+          glide(restY(index), CATCH_SECONDS)
+        }
+
+        const letGo = (dir) => {
+          if (!engaged) return
+          engaged = false
+          escape = dir
+          pane.style.touchAction = ''
+          gsap.killTweensOf(proxy)
+          getLenis()?.start()
+        }
+
+        const stepBy = (dir) => {
+          index = gsap.utils.clamp(0, steps, index + dir)
+          hold()
+          glide(restY(index), STEP_SECONDS)
+        }
+
+        const spent = (dir) => (dir > 0 && index >= steps) || (dir < 0 && index <= 0)
+
+        const onWheel = (event) => {
+          const dy = event.deltaY
+          if (!dy) return
+
+          const dir = dy > 0 ? 1 : -1
+          const abs = Math.abs(dy)
+          const now = performance.now()
+          const fresh = now - lastAt > BURST_END || dir !== lastDir
+          lastAt = now
+          lastDir = dir
+          if (fresh) {
+            peakAbs = 0
+            sinceStep = 0
+            carried = false
+          }
+          if (abs > peakAbs) peakAbs = abs
+
+          if (!engaged) {
+            if (!driver.isActive || dir === escape) return
+            engage()
+          }
+
+          if (!carried && spent(dir)) {
+            letGo(dir)
             return
           }
 
-          const cap = rate * dt
-          const closing = diff * (1 - Math.pow(1 - STACK_CATCH, dt * 60))
-          shown += gsap.utils.clamp(-cap, cap, closing)
-          tl.progress(shown)
-        }
+          hold()
+          if (event.cancelable) event.preventDefault()
 
-        const kick = () => {
-          if (running) return
-          running = true
-          gsap.ticker.add(follow)
-        }
+          if (abs < WHEEL_DEAD || now < lockUntil) return
+          if (!fresh && abs < peakAbs * BURST_LIVE) return
 
-        const land = (progress) => {
-          if (running) {
-            gsap.ticker.remove(follow)
-            running = false
+          if (!fresh && sinceStep + abs < RE_ARM_PX) {
+            sinceStep += abs
+            return
           }
-          target = progress
-          shown = progress
-          tl.progress(progress)
+
+          sinceStep = 0
+          carried = true
+          lockUntil = now + STEP_SECONDS * 1000 + STEP_TAIL
+          stepBy(dir)
         }
 
-        const driver = ScrollTrigger.create({
+
+        const onTouchStart = (event) => {
+          touching = event.touches.length === 1
+          carried = false
+          if (touching) anchorY = event.touches[0].clientY
+        }
+
+        const onTouchMove = (event) => {
+          if (!touching || event.touches.length !== 1) return
+
+          const y = event.touches[0].clientY
+          const travel = anchorY - y
+          const reach = Math.abs(travel)
+          if (reach < 6) return
+          const dir = travel > 0 ? 1 : -1
+
+          if (!engaged) {
+            if (!driver.isActive || dir === escape || reach < SWIPE_MIN) return
+            engage()
+          }
+
+          if (!carried && spent(dir)) {
+            if (reach < SWIPE_MIN) return
+            letGo(dir)
+            touching = false
+            return
+          }
+
+          hold()
+          if (event.cancelable) event.preventDefault()
+
+          const now = performance.now()
+          if (reach < SWIPE_MIN || now < lockUntil) return
+
+          anchorY = y
+          carried = true
+          lockUntil = now + STEP_SECONDS * 1000 + STEP_TAIL
+          stepBy(dir)
+        }
+
+        const onTouchEnd = () => {
+          touching = false
+          if (engaged && !carried) settle()
+        }
+
+        const onKey = (event) => {
+          if (!engaged || event.metaKey || event.ctrlKey || event.altKey) return
+          if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target?.tagName || '')) return
+
+          if (event.key === 'Home' || event.key === 'End') {
+            letGo(event.key === 'End' ? 1 : -1)
+            return
+          }
+
+          const forward = FORWARD_KEYS.has(event.key)
+          if (!forward && !BACK_KEYS.has(event.key)) return
+          const dir = forward && !(event.shiftKey && event.key === ' ') ? 1 : -1
+
+          if (spent(dir)) {
+            letGo(dir)
+            return
+          }
+
+          event.preventDefault()
+          const now = performance.now()
+          if (now < lockUntil) return
+
+          lockUntil = now + STEP_SECONDS * 1000 + STEP_TAIL
+          stepBy(dir)
+        }
+
+        intro = ScrollTrigger.create({
           trigger: stage,
-          start: 'top 5%',
+          start: 'top bottom-=18%',
+          end: 'top top',
+          invalidateOnRefresh: true,
+          onUpdate: paint,
+        })
+
+        driver = ScrollTrigger.create({
+          trigger: stage,
+          start: 'top top',
           end: 'bottom bottom',
           invalidateOnRefresh: true,
           onUpdate: (st) => {
-            target = st.progress
-            kick()
+            paint()
+            if (engaged) {
+              settle()
+              return
+            }
+            index = at(st.progress)
+            if (escape && !spent(escape)) escape = 0
           },
-          onRefresh: (st) => {
+          onToggle: (st) => (st.isActive ? engage() : letGo(0)),
+          onRefresh: () => {
             tl.invalidate()
             tl.progress(0)
             seed()
-            land(st.progress)
+            paint()
+            if (engaged) {
+              index = at(driver.progress)
+              glide(restY(index), 0)
+            }
           },
         })
 
-        const onJump = () => land(driver.progress)
-        window.addEventListener('nav:jump', onJump)
+        paint()
 
-        if (import.meta.env.DEV) window.__pjTl = tl
+        const onJump = () => {
+          gsap.killTweensOf(proxy)
+          lockUntil = 0
+          escape = 0
+          paint()
+          if (engaged && !driver.isActive) letGo(0)
+          else if (!engaged && driver.isActive) engage()
+          else index = at(driver.progress)
+        }
+
+        const wheelOpts = { passive: false, capture: true }
+        const touchOpts = { passive: false, capture: true }
+
+        window.addEventListener('nav:jump', onJump)
+        window.addEventListener('wheel', onWheel, wheelOpts)
+        window.addEventListener('touchstart', onTouchStart, { passive: true, capture: true })
+        window.addEventListener('touchmove', onTouchMove, touchOpts)
+        window.addEventListener('touchend', onTouchEnd, { passive: true, capture: true })
+        window.addEventListener('touchcancel', onTouchEnd, { passive: true, capture: true })
+        window.addEventListener('keydown', onKey)
+
+        if (import.meta.env.DEV) {
+          window.__pjTl = tl
+          window.__pjIndex = () => index
+        }
 
         return () => {
           window.removeEventListener('nav:jump', onJump)
-          gsap.ticker.remove(follow)
-          running = false
+          window.removeEventListener('wheel', onWheel, wheelOpts)
+          window.removeEventListener('touchstart', onTouchStart, { capture: true })
+          window.removeEventListener('touchmove', onTouchMove, touchOpts)
+          window.removeEventListener('touchend', onTouchEnd, { capture: true })
+          window.removeEventListener('touchcancel', onTouchEnd, { capture: true })
+          window.removeEventListener('keydown', onKey)
+          clearTimeout(settleId)
+          gsap.killTweensOf(proxy)
+          pane.style.touchAction = ''
+          if (engaged) getLenis()?.start()
+          engaged = false
         }
       },
       root,

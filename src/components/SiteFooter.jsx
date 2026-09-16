@@ -1,5 +1,12 @@
 // Site footer
 
+import { scrollToSection } from '../hooks/useSmoothScroll'
+
+function handleNavigate(event, href) {
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (scrollToSection(href, { reduceMotion })) event.preventDefault()
+}
+
 const LINKS = [
   { label: 'Home', href: '#home' },
   { label: 'About Me', href: '#about' },
@@ -72,7 +79,11 @@ export default function SiteFooter() {
               <ul data-ftr="links">
                 {LINKS.map((l) => (
                   <li key={l.href}>
-                    <a href={l.href} data-hover-roll>
+                    <a
+                      href={l.href}
+                      data-hover-roll
+                      onClick={(event) => handleNavigate(event, l.href)}
+                    >
                       {l.label}
                     </a>
                   </li>

@@ -374,7 +374,7 @@ export default function Projects() {
         let lockUntil = 0
         let peakAbs = 0
         let sinceStep = 0
-        let carried = false
+        let handing = false
         let lastAt = -1e9
         let lastDir = 0
 
@@ -467,18 +467,12 @@ export default function Projects() {
           if (fresh) {
             peakAbs = 0
             sinceStep = 0
-            carried = false
           }
           if (abs > peakAbs) peakAbs = abs
 
           if (!engaged) {
             if (!driver.isActive || dir === escape) return
             engage()
-          }
-
-          if (!carried && spent(dir)) {
-            letGo(dir)
-            return
           }
 
           hold()
@@ -493,7 +487,11 @@ export default function Projects() {
           }
 
           sinceStep = 0
-          carried = true
+          if (spent(dir)) {
+            letGo(dir)
+            return
+          }
+
           lockUntil = now + STEP_SECONDS * 1000 + STEP_TAIL
           stepBy(dir)
         }
@@ -501,7 +499,7 @@ export default function Projects() {
 
         const onTouchStart = (event) => {
           touching = event.touches.length === 1
-          carried = false
+          handing = false
           if (touching) anchorY = event.touches[0].clientY
         }
 
@@ -515,15 +513,13 @@ export default function Projects() {
           const dir = travel > 0 ? 1 : -1
 
           if (!engaged) {
+            if (handing) {
+              window.scrollBy(0, travel)
+              anchorY = y
+              return
+            }
             if (!driver.isActive || dir === escape || reach < SWIPE_MIN) return
             engage()
-          }
-
-          if (!carried && spent(dir)) {
-            if (reach < SWIPE_MIN) return
-            letGo(dir)
-            touching = false
-            return
           }
 
           hold()
@@ -533,14 +529,20 @@ export default function Projects() {
           if (reach < SWIPE_MIN || now < lockUntil) return
 
           anchorY = y
-          carried = true
+          if (spent(dir)) {
+            handing = true
+            letGo(dir)
+            return
+          }
+
           lockUntil = now + STEP_SECONDS * 1000 + STEP_TAIL
           stepBy(dir)
         }
 
         const onTouchEnd = () => {
           touching = false
-          if (engaged && !carried) settle()
+          handing = false
+          if (engaged) settle()
         }
 
         const onKey = (event) => {

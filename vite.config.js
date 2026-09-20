@@ -2,12 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const siteUrl = (
-  process.env.SITE_URL ||
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL &&
-    `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`) ||
-  'https://felix-deguzman-dev.vercel.app'
-).replace(/\/+$/, '')
+const siteUrl = 'https://www.felixdeguzman.com'
 
 const robots = [
   'User-agent: *',
@@ -69,6 +64,5 @@ export default defineConfig({
       plugins: [lockViewportUnits()],
     },
   },
-  // GitHub Pages serves this from a subfolder; Vercel serves it from the domain root.
-  base: process.env.VERCEL ? '/' : '/felix.deguzman-dev/',
+  base: '/',
 })

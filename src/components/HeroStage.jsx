@@ -24,17 +24,17 @@ const SEL = {
   ctaSecondary: '[data-hero-cta="secondary"]',
   img: '[data-hero-img]',
   figure: '[data-hero="figure"]',
-  sign: '[data-hero-sign]',
-  signPath: '[data-hero-sign-path]',
+  // sign: '[data-hero-sign]',
+  // signPath: '[data-hero-sign-path]',
   slot: '[data-about="slot"]',
   rig: '[data-about="rig"]',
   navLogo: '[data-nav-logo] img',
   navCta: '[data-nav-cta]',
 }
 
-const SIGN_INK_LEFT = 0.354
-const SIGN_INK_RIGHT = 0.08
-const SIGN_INK_TOP = 0.08
+// const SIGN_INK_LEFT = 0.354
+// const SIGN_INK_RIGHT = 0.08
+// const SIGN_INK_TOP = 0.08
 
 const BAR_SETTLE_MS = 200
 
@@ -172,19 +172,19 @@ function buildShrink(tl, q, pane) {
   const figureTop = figure ? figure.offsetTop : paneH - windowH
   const restTop = gsap.utils.clamp(0, slack, figureTop - headroom)
 
-  const sign = document.querySelector(SEL.sign)
-  if (sign && sign.viewBox.baseVal.width) {
-    const vb = sign.viewBox.baseVal
-    const path = sign.querySelector(SEL.signPath)
-    const bb = path ? path.getBBox() : null
-    const ink = bb && bb.width > 0 && bb.height > 0 ? bb : { x: 0, y: 0, width: vb.width, height: vb.height }
-    const span = 1 + SIGN_INK_LEFT + SIGN_INK_RIGHT
-    const unit = (target.width * span) / ink.width
-    sign.style.width = `${vb.width * unit}px`
-    sign.style.height = `${vb.height * unit}px`
-    sign.style.left = `${target.left - target.width * SIGN_INK_LEFT - ink.x * unit}px`
-    sign.style.top = `${target.top - target.height * SIGN_INK_TOP - ink.y * unit}px`
-  }
+  // const sign = document.querySelector(SEL.sign)
+  // if (sign && sign.viewBox.baseVal.width) {
+  //   const vb = sign.viewBox.baseVal
+  //   const path = sign.querySelector(SEL.signPath)
+  //   const bb = path ? path.getBBox() : null
+  //   const ink = bb && bb.width > 0 && bb.height > 0 ? bb : { x: 0, y: 0, width: vb.width, height: vb.height }
+  //   const span = 1 + SIGN_INK_LEFT + SIGN_INK_RIGHT
+  //   const unit = (target.width * span) / ink.width
+  //   sign.style.width = `${vb.width * unit}px`
+  //   sign.style.height = `${vb.height * unit}px`
+  //   sign.style.left = `${target.left - target.width * SIGN_INK_LEFT - ink.x * unit}px`
+  //   sign.style.top = `${target.top - target.height * SIGN_INK_TOP - ink.y * unit}px`
+  // }
 
   frames.forEach((frame) => {
     frame.style.transformOrigin = '50% 50%'
@@ -218,12 +218,12 @@ function buildShrink(tl, q, pane) {
     })
     canvas.style.transform = ''
     canvas.style.transformOrigin = ''
-    if (sign) {
-      sign.style.width = ''
-      sign.style.height = ''
-      sign.style.left = ''
-      sign.style.top = ''
-    }
+    // if (sign) {
+    //   sign.style.width = ''
+    //   sign.style.height = ''
+    //   sign.style.left = ''
+    //   sign.style.top = ''
+    // }
   }
 }
 
